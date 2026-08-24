@@ -70,6 +70,11 @@ That last stage is deliberately not automated yet — the folder is built to sup
 it.
 → [shared/memory-protocol.md](shared/memory-protocol.md) · [memories/](memories/)
 
+## How it runs
+
+[WALKTHROUGH.md](WALKTHROUGH.md) lists every feature the team supports and traces
+one task end to end, with use cases exercising each feature.
+
 ## Structure
 
 ```
