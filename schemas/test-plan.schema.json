@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "test-plan.schema.json",
+  "title": "TestPlanAndResult",
+  "description": "Written by a QE Engineer before execution, completed with results after. The author of the change never produces this for their own task.",
+  "type": "object",
+  "required": ["task_id", "qe_instance", "author_instance", "cases"],
+  "additionalProperties": false,
+  "properties": {
+    "task_id": { "type": "string" },
+    "qe_instance": { "type": "string" },
+    "author_instance": { "type": "string", "description": "Must differ from qe_instance." },
+    "result": { "enum": ["PASS", "FAILED", "NOT_RUN"] },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "class", "criterion_id", "steps", "expected"],
+        "properties": {
+          "id": { "type": "string" },
+          "class": { "enum": ["happy-path", "boundary", "invalid-input", "state", "permission", "concurrency", "failure-injection", "regression"] },
+          "criterion_id": { "type": "string", "description": "The acceptance criterion this case probes." },
+          "steps": { "type": "array", "items": { "type": "string" }, "description": "Deterministic, from a known start state." },
+          "expected": { "type": "string" },
+          "actual": { "type": "string" },
+          "outcome": { "enum": ["pass", "fail", "blocked", "skipped"] }
+        }
+      }
+    },
+    "defects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["severity", "defect", "criterion_id", "reproduce", "expected", "actual"],
+        "properties": {
+          "severity": { "enum": ["blocking", "major", "minor"] },
+          "defect": { "type": "string" },
+          "criterion_id": { "type": "string" },
+          "reproduce": { "type": "array", "items": { "type": "string" } },
+          "expected": { "type": "string" },
+          "actual": { "type": "string" },
+          "evidence": { "type": "string" },
+          "frequency": { "type": "string", "description": "e.g. 'every run' or '3 of 10 runs'" }
+        }
+      }
+    },
+    "not_covered": { "type": "array", "items": { "type": "string" }, "description": "Mandatory. What was deliberately skipped and why." },
+    "confidence": { "type": "string", "description": "Mandatory. Where you would still expect a problem to hide." }
+  }
+}

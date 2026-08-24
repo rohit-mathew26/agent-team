@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "memory.schema.json",
+  "title": "Memory",
+  "description": "One durable fact in memories/. Frontmatter fields plus a distilled body. Written only by the Manager.",
+  "type": "object",
+  "required": ["id", "type", "scope", "source", "date", "status", "rule", "why"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^mem-[0-9]{4}$" },
+    "type": {
+      "enum": ["feedback", "ruling", "failure"],
+      "description": "feedback: a human correction. ruling: a PM/Architect decision binding beyond one task. failure: a stuck post-mortem."
+    },
+    "scope": {
+      "type": "string",
+      "description": "'all', a role name, or a path/component the rule applies to. Narrow scope keeps the index cheap for agents it does not concern."
+    },
+    "source": { "type": "string", "description": "human | product-manager | architect | manager | <role>#<instance>" },
+    "date": { "type": "string", "format": "date" },
+    "status": { "type": "string", "pattern": "^(active|superseded-by-mem-[0-9]{4})$" },
+    "rule": {
+      "type": "string",
+      "maxLength": 400,
+      "description": "The distilled instruction, actionable by an agent who never saw the original exchange. Not a transcript."
+    },
+    "why": {
+      "type": "string",
+      "maxLength": 400,
+      "description": "The reason. A rule without its reason gets misapplied at the edges."
+    },
+    "applies_when": { "type": "string", "description": "The trigger condition." },
+    "related": { "type": "array", "items": { "type": "string", "pattern": "^mem-[0-9]{4}$" } },
+    "origin_task": { "type": "string", "description": "Task id this arose from, if any." },
+    "applications": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Reserved for the feedback loop: times an agent cited this entry. Unused today; enables pruning rules that never fire."
+    }
+  }
+}

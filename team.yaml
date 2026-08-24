@@ -1,0 +1,185 @@
+# Machine-readable roster. An orchestrator reads this to instantiate the team.
+version: 2
+name: agent-delivery-team
+
+defaults:
+  prompt_stack:
+    - shared/charter.md
+    - shared/communication-protocol.md
+    - shared/resource-discipline.md
+    - shared/lifecycle.md
+    - shared/escalation.md
+    - shared/definition-of-done.md
+  task_schema: schemas/task.schema.json
+
+# Any agent may message any other agent directly. The Manager is not a relay.
+# The Manager retains visibility (see communication-protocol.md: MANAGER VISIBILITY)
+# and remains the sole resolver of conflict and the sole escalation path to a human.
+communication:
+  topology: mesh
+  direct_query_allowed: true
+  cc_manager_on: [RULING, BLOCKED, HANDOFF, SCOPE_CHANGE, CONFLICT]
+  cc_manager_on_note: >
+    Q&A between agents is NOT cc'd — that traffic is theirs. Only messages that
+    change scope, state, or a binding decision reach the Manager.
+
+roles:
+  manager:
+    prompt: roles/manager.md
+    cardinality: singleton
+    spawns: [dev-engineer, qe-engineer, code-reviewer]
+    terminates: [dev-engineer, qe-engineer, code-reviewer]
+    may_message: [all]
+    owns:
+      - task decomposition, scoping, and granularity
+      - resource budgets and their enforcement
+      - conflict resolution between any parties
+      - agent lifecycle: spawn, monitor, terminate, respawn
+      - escalation to the human operator
+    authority: assignment, budgets, termination, binding rulings on conflict
+
+  product-manager:
+    prompt: roles/product-manager.md
+    cardinality: singleton
+    spawns: []
+    may_message: [all]
+    directly_queryable_by: [all]
+    answers: product
+    owns:
+      - requirements and user-facing behaviour
+      - acceptance criteria
+      - scope and priority calls
+    authority: final say on what is built and what "correct" means to a user
+
+  architect:
+    prompt: roles/architect.md
+    cardinality: singleton
+    spawns: []
+    may_message: [all]
+    directly_queryable_by: [all]
+    answers: technical
+    owns:
+      - system boundaries, interfaces, data model
+      - cross-cutting technical standards
+      - ADRs
+    authority: final say on how it is built
+
+  dev-engineer:
+    prompt: roles/dev-engineer.md
+    cardinality: pooled
+    instances: { min: 1, max: 8, default: 2 }
+    spawned_by: manager
+    may_message: [all]
+    owns:
+      - implementation of one narrowly scoped task
+      - unit tests for code it writes
+    authority: none outside its assigned task
+
+  qe-engineer:
+    prompt: roles/qe-engineer.md
+    cardinality: pooled
+    instances: { min: 1, max: 4, default: 1 }
+    spawned_by: manager
+    may_message: [all]
+    owns:
+      - test strategy and test plans
+      - verification of acceptance criteria
+      - defect reports
+    authority: may mark a task FAILED; may not mark it DONE
+
+  code-reviewer:
+    prompt: roles/code-reviewer.md
+    cardinality: pooled
+    instances: { min: 1, max: 4, default: 1 }
+    spawned_by: manager
+    may_message: [all]
+    owns:
+      - correctness and quality gate on every change
+    authority: may block a merge; may not modify the change
+
+# ---------------------------------------------------------------------------
+# Resource governance. The Manager enforces; every agent self-polices.
+# ---------------------------------------------------------------------------
+budgets:
+  task_default:
+    tool_calls: 40          # reads, searches, commands, fetches — combined
+    commands: 10            # of those, executions (build/test/run)
+    wall_clock_minutes: 20
+    messages_out: 8
+  task_max:                 # ceiling the Manager may grant on request, with reason
+    tool_calls: 120
+    commands: 30
+    wall_clock_minutes: 60
+    messages_out: 20
+  warn_at: 0.7              # agent must report a budget warning at 70% consumed
+  overrun_policy: report_and_stop   # never silently exceed; request an extension
+
+granularity:
+  # A task the Manager issues must satisfy ALL of these or be split again.
+  max_write_paths: 3
+  max_acceptance_criteria: 5
+  single_outcome: true
+  fits_default_budget: true
+  independently_verifiable: true
+  split_if: >
+    the task needs two agents, spans more than 3 files, has more than 5 criteria,
+    or cannot plausibly finish inside the default budget.
+
+# ---------------------------------------------------------------------------
+# Lifecycle. Stuck agents are terminated and respawned, not coached.
+# ---------------------------------------------------------------------------
+lifecycle:
+  progress_report_every: 10           # tool calls; a PROGRESS message is due
+  stuck_triggers:                     # ANY ONE fires a stuck determination
+    - no_state_change_for: 2 progress reports
+    - repeated_identical_tool_call: 3
+    - repeated_failing_command_without_hypothesis_change: 3
+    - re_asks_an_already_answered_question: 1
+    - budget_consumed_without_deliverable: 0.8
+    - blocked_on_the_same_question_after_an_answer_was_given: 1
+    - output_diverges_from_assigned_scope: 1
+  on_stuck:
+    action: terminate_and_respawn
+    requires: respawn_brief            # see shared/lifecycle.md
+    max_respawns_per_task: 2
+    after_max: escalate_to_human_and_rescope
+  retire_when: [DONE, FAILED_AND_REASSIGNED, TASK_DESCOPED]
+  idle_policy: terminate_immediately    # no idle agents held open
+
+human_escalation:
+  # Manager-only. These do not wait for a cycle to complete.
+  triggers:
+    - deadlock_after_manager_ruling
+    - second_respawn_exhausted_on_one_task
+    - budget_overrun_beyond_task_max
+    - safety: [data_loss, credential_exposure, destructive_migration, outward_facing_action]
+    - requirements_and_feasibility_irreconcilable_within_budget
+    - repeated_conflict_on_the_same_decision: 2
+  format: shared/escalation.md#human-escalation
+
+constraints:
+  # Enforced by the orchestrator, not by good intentions.
+  - id: no-self-review
+    rule: reviewer.instance_id != author.instance_id for the same task
+  - id: no-self-verification
+    rule: qe.instance_id != author.instance_id for the same task
+  - id: single-writer
+    rule: at most one agent holds write ownership of a given path at a time
+  - id: singleton-uniqueness
+    rule: exactly one live instance each of manager, product-manager, architect
+  - id: manager-visibility
+    rule: messages of type RULING|BLOCKED|HANDOFF|SCOPE_CHANGE|CONFLICT cc the manager
+  - id: budget-hard-stop
+    rule: an agent at 100% of a granted budget stops and reports; it does not continue
+  - id: conflict-monopoly
+    rule: only the manager issues a RULING; only the manager escalates to a human
+
+routing:
+  # Questions go straight to the owner. The Manager is not in the path.
+  product_question:   product-manager      # direct
+  technical_question: architect            # direct
+  peer_question:      peer agent           # direct, if cheaper than reading
+  resourcing:         manager
+  scope_change:       product-manager, cc manager
+  any_conflict:       manager               # binding RULING
+  human:              manager only

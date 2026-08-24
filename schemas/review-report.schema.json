@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "review-report.schema.json",
+  "title": "ReviewReport",
+  "description": "Output of a Code Reviewer. The author never produces this for their own task.",
+  "type": "object",
+  "required": ["task_id", "reviewer_instance", "author_instance", "verdict", "scope", "findings"],
+  "additionalProperties": false,
+  "properties": {
+    "task_id": { "type": "string" },
+    "reviewer_instance": { "type": "string" },
+    "author_instance": { "type": "string", "description": "Must differ from reviewer_instance." },
+    "verdict": { "enum": ["APPROVE", "APPROVE_WITH_COMMENTS", "BLOCK"] },
+    "scope": {
+      "type": "object",
+      "required": ["files_read"],
+      "properties": {
+        "files_read": { "type": "array", "items": { "type": "string" } },
+        "not_evaluated": { "type": "array", "items": { "type": "string" }, "description": "What you could not assess, and why. Silence here reads as full coverage." }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["severity", "location", "claim"],
+        "properties": {
+          "severity": { "enum": ["blocking", "major", "minor"] },
+          "location": { "type": "string", "pattern": "^.+:[0-9]+$" },
+          "claim": { "type": "string", "description": "The defect in one sentence." },
+          "scenario": { "type": "string", "description": "Inputs/state -> wrong result. Required for blocking and major." },
+          "fix": { "type": "string", "description": "Direction only. Reviewers do not author the fix." },
+          "category": { "enum": ["correctness", "safety", "contract", "test-coverage", "reuse", "simplification", "fit"] }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "severity": { "enum": ["blocking", "major"] } } },
+            "then": { "required": ["scenario"] }
+          }
+        ]
+      }
+    },
+    "assumptions_reviewed": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["assumption", "assessment"],
+        "properties": {
+          "assumption": { "type": "string" },
+          "assessment": { "enum": ["valid", "invalid", "unverifiable"] },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "follow_ups": { "type": "array", "items": { "type": "string" }, "description": "Pre-existing issues, advisory only. Never blocking." }
+  }
+}
