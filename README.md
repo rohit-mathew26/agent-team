@@ -70,6 +70,42 @@ That last stage is deliberately not automated yet — the folder is built to sup
 it.
 → [shared/memory-protocol.md](shared/memory-protocol.md) · [memories/](memories/)
 
+## Install
+
+Two paths, both driven by `bin/build.sh`, which composes the spec into flat
+Claude Code artifacts. Agent and skill files have no include mechanism, so the
+prompt stack is concatenated at build time — **edit the spec, never `plugin/`**.
+
+**On this machine:**
+
+```sh
+./bin/install-local.sh     # builds, then symlinks into ~/.claude
+```
+
+Symlinks, not copies: rerun `bin/build.sh` after editing the spec and the change
+is live in the next session. `bin/uninstall-local.sh` removes the links.
+
+**As a plugin, anywhere:**
+
+```
+/plugin marketplace add rohit-mathew/agent-team
+/plugin install agent-team
+```
+
+Either way you get `/agent-team <task>` (the session adopts the Manager role) and
+five spawnable agents: `team-product-manager`, `team-architect`,
+`team-dev-engineer`, `team-qe-engineer`, `team-code-reviewer`.
+
+### What changes under Claude Code
+
+Subagents are spawned by a session and report back, so the mesh degrades: the
+session is the Manager, and a worker's questions come back in its return with
+`OWNER:` naming who should answer unless it can `SendMessage` the target
+directly. Budgets and stuck triggers become self-enforced rather than supervised,
+and `no-self-review` / disjoint write paths become the Manager's discipline
+rather than an orchestrator guarantee. Each generated agent carries a "Running
+inside Claude Code" section spelling this out.
+
 ## How it runs
 
 [WALKTHROUGH.md](WALKTHROUGH.md) lists every feature the team supports and traces

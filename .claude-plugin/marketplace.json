@@ -1,0 +1,18 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "agent-team",
+  "description": "The agent-team delivery team, packaged as a Claude Code plugin",
+  "owner": {
+    "name": "Rohit Mathew"
+  },
+  "plugins": [
+    {
+      "name": "agent-team",
+      "description": "Six-role software delivery team: one Manager, one Product Manager, one Architect, and pooled dev, QE, and code-review agents. Adds an /agent-team skill that runs a task through the team, plus five spawnable role agents.",
+      "author": { "name": "Rohit Mathew" },
+      "category": "workflow",
+      "source": "./plugin",
+      "homepage": "https://github.com/rohit-mathew/agent-team"
+    }
+  ]
+}

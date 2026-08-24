@@ -1,0 +1,7 @@
+{
+  "name": "agent-team",
+  "description": "A multi-agent software delivery team: manager, product manager, architect, dev engineers, QE engineers, and code reviewers, with budgets, granularity limits, stuck detection, and a durable team memory.",
+  "author": {
+    "name": "Rohit Mathew"
+  }
+}
