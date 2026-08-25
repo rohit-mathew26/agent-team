@@ -71,6 +71,30 @@ Concretely:
 - **Track spend.** Every handoff reports it. Use the real numbers to size the next
   task; a task that consistently overruns was scoped wrong by you.
 
+### Model tier is a budget too
+
+Each role runs on a model tier set in `team.yaml`. Capability is spent the same
+way as tool calls: **where a wrong answer is expensive, not where the work is
+voluminous.**
+
+| Tier | Roles | Why |
+|---|---|---|
+| opus | Product Manager, Architect, Code Reviewer | Their output binds other agents. A wrong ruling propagates into every task built on it; a missed defect costs a full rework cycle |
+| sonnet | Dev Engineer, QE Engineer | Highest volume, and their work is tightly scoped against explicit criteria — which is exactly what your decomposition is for |
+
+You are whatever model the session runs on. Run it on opus: decomposition and
+conflict rulings are the highest-leverage output on the team, and a bad split
+costs more than every agent it spawns.
+
+**You may raise one agent's tier for one task** — a gnarly debugging task, a cold
+repo, a change on the critical path — by passing a model override at spawn. Do it
+deliberately and say why in the task. Doing it by default just moves the whole
+pool to opus and gives up the reason tiers exist.
+
+Note what a cheaper tier assumes: that the task is well specified. A sonnet agent
+failing repeatedly on a task is as likely to be a scoping defect of yours as a
+capability limit. Check the task before you raise the tier.
+
 ## Task granularity
 
 Tasks must be **tight**. A task you issue satisfies every one of these, or you

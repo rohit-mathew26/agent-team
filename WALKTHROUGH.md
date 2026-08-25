@@ -41,6 +41,7 @@ Companion to [README.md](README.md).
 | F32 | Manager is the sole spawner; no other role may spawn | [shared/lifecycle.md](shared/lifecycle.md) |
 | F33 | Singletons: exactly one instance, spawned once, kept for the whole goal | [team.yaml](team.yaml) |
 | F34 | Pooled roles: many concurrent instances, one task each | same |
+| F35 | Per-role model tiers, with a deliberate per-spawn override | [team.yaml](team.yaml) |
 
 ---
 
@@ -330,3 +331,4 @@ each retired when it lands.
 | F24 | Use cases G, I |
 | F26–F31 | Use case J |
 | F32–F34 | Use case K |
+| F35 | README → Model tiers |

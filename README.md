@@ -62,6 +62,28 @@ consumers, and cold repos get an orientation uplift that the first agent repays 
 writing the repo brief.
 → [workflows/cross-repo-change.md](workflows/cross-repo-change.md) · [schemas/workspace.schema.json](schemas/workspace.schema.json)
 
+## Model tiers
+
+Capability is a budget like tool calls: spend it where a wrong answer is
+expensive, not where the work is voluminous.
+
+| Tier | Roles | Why |
+|---|---|---|
+| **opus** | Manager (the session), Product Manager, Architect, Code Reviewer | Their output binds other agents — a wrong ruling propagates into every task built on it, and a missed defect costs a full rework cycle |
+| **sonnet** | Dev Engineer, QE Engineer | Highest volume, and the work is tightly scoped against explicit criteria |
+
+Set per role by `model:` in [team.yaml](team.yaml); `bin/build.sh` reads it and
+emits the frontmatter, so the spec stays the source of truth. Change a tier there
+and rebuild — never edit the generated agent.
+
+The Manager has no frontmatter of its own: it *is* the session, so run the session
+on opus (`/model opus`, or `"model": "opus"` in `~/.claude/settings.json`). It may
+raise one agent's tier for one task — a gnarly debug, a cold repo, the critical
+path — via the Agent tool's `model` override, deliberately and with a stated
+reason. A cheaper tier assumes the task is well specified; an agent failing
+repeatedly is as likely a scoping defect as a capability limit, so check the task
+before raising the tier.
+
 ## Memory
 
 `memories/` is the team's durable experience — separate from `roles/`, which is

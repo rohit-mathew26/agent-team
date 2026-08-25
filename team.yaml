@@ -26,6 +26,7 @@ communication:
 roles:
   manager:
     prompt: roles/manager.md
+    model: session              # the Manager IS the session; set with /model opus or settings.json
     cardinality: singleton
     instances: { exactly: 1 }
     spawned_by: operator            # the only role not spawned by the Manager
@@ -46,6 +47,7 @@ roles:
 
   product-manager:
     prompt: roles/product-manager.md
+    model: opus              # few calls, but each answer binds the whole goal
     cardinality: singleton
     instances: { exactly: 1 }
     spawned_by: manager
@@ -62,6 +64,7 @@ roles:
 
   architect:
     prompt: roles/architect.md
+    model: opus              # rulings bind every repo and outlive the agent that asked
     cardinality: singleton
     instances: { exactly: 1 }
     spawned_by: manager
@@ -78,6 +81,7 @@ roles:
 
   dev-engineer:
     prompt: roles/dev-engineer.md
+    model: sonnet              # highest volume; work is tightly scoped and well specified
     cardinality: pooled
     instances: { min: 1, max: 8, default: 2 }
     spawned_by: manager
@@ -91,6 +95,7 @@ roles:
 
   qe-engineer:
     prompt: roles/qe-engineer.md
+    model: sonnet              # execution-heavy, criteria are explicit
     cardinality: pooled
     instances: { min: 1, max: 4, default: 1 }
     spawned_by: manager
@@ -105,6 +110,7 @@ roles:
 
   code-reviewer:
     prompt: roles/code-reviewer.md
+    model: opus              # last correctness gate; a missed defect costs a full rework cycle
     cardinality: pooled
     instances: { min: 1, max: 4, default: 1 }
     spawned_by: manager
@@ -143,6 +149,28 @@ granularity:
     the task needs two agents, spans more than 3 files, has more than 5 criteria,
     or cannot plausibly finish inside the default budget.
 
+
+
+# ---------------------------------------------------------------------------
+# Model tiers. Capability is a budget like any other: spend it where a wrong
+# answer is expensive, not where the work is voluminous.
+# ---------------------------------------------------------------------------
+models:
+  values: [opus, sonnet, haiku, inherit]   # aliases accepted in agent frontmatter
+  rationale:
+    opus:   roles whose output binds other agents — decisions, rulings, the quality gate
+    sonnet: roles doing well-specified work at volume against explicit criteria
+    haiku:  mechanical passes only; not assigned to any role by default
+  manager_note: >
+    The Manager has no frontmatter of its own — it is whatever model the session
+    runs on. Run the session on opus; the Manager's decomposition and conflict
+    rulings are the highest-leverage output on the team.
+  per_spawn_override: allowed
+  per_spawn_override_note: >
+    The Manager may raise a single agent's tier for one task — a gnarly
+    debugging task, a cold repo, a change on a critical path — by passing a
+    model override at spawn. Raise it deliberately and say why in the task;
+    never as a blanket default, which just moves the whole pool to opus.
 
 # ---------------------------------------------------------------------------
 # Multi-repo. The Manager deploys agents into any repo in the workspace.
