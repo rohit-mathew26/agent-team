@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "workspace.schema.json",
+  "title": "Workspace",
+  "description": "The set of repos a Manager may deploy agents into for one goal. Read by the Manager before decomposition; the per-repo briefs are what stop agents burning budget rediscovering each repo.",
+  "type": "object",
+  "required": ["name", "repos"],
+  "additionalProperties": false,
+  "properties": {
+    "name": { "type": "string" },
+    "goal": { "type": "string", "description": "The cross-repo outcome. One sentence." },
+
+    "repos": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "path", "role"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "Short handle. Every task and write path is qualified by it: 'api:src/auth.ts'." },
+          "path": { "type": "string", "description": "Absolute local path to the working copy." },
+          "remote": { "type": "string" },
+          "branch": { "type": "string", "description": "Base branch for this change." },
+          "role": {
+            "enum": ["producer", "consumer", "both", "independent"],
+            "description": "producer: defines the contract others build against. consumer: depends on it. both: mid-chain. independent: no cross-repo coupling in this goal."
+          },
+          "depends_on": { "type": "array", "items": { "type": "string" }, "description": "Repo ids whose contract change must land first." },
+          "brief": { "type": "string", "description": "Path to the repo brief (templates/repo-brief.md). Required for any repo the team has not worked in before." },
+          "commands": {
+            "type": "object",
+            "description": "How to build and test HERE. Agents must not have to discover these.",
+            "properties": {
+              "install": { "type": "string" },
+              "build": { "type": "string" },
+              "test": { "type": "string" },
+              "test_one": { "type": "string", "description": "Narrow run, for use during work. The full suite runs once before handoff." },
+              "lint": { "type": "string" }
+            }
+          },
+          "cold": { "type": "boolean", "default": false, "description": "True if no agent has worked here recently. Cold repos get a budget uplift for orientation; see resource-discipline.md." },
+          "write_allowed": { "type": "boolean", "default": true, "description": "False makes the repo read-only for this goal — agents may read it for context but never modify it." }
+        }
+      }
+    },
+
+    "contracts": {
+      "type": "array",
+      "description": "The interfaces that bind repos together. Owned by the Architect, recorded as ADRs.",
+      "items": {
+        "type": "object",
+        "required": ["id", "producer", "consumers", "surface"],
+        "properties": {
+          "id": { "type": "string" },
+          "producer": { "type": "string", "description": "Repo id that defines it." },
+          "consumers": { "type": "array", "items": { "type": "string" } },
+          "surface": { "type": "string", "description": "The actual API, schema, event, or wire format." },
+          "adr": { "type": "string" },
+          "compatibility": {
+            "enum": ["expand-contract", "versioned", "breaking-coordinated"],
+            "description": "How the change lands without an atomic cross-repo merge. expand-contract is the default: add the new surface, migrate consumers, remove the old one in a later task."
+          },
+          "stage": { "enum": ["expand", "migrate", "contract", "done"] }
+        }
+      }
+    },
+
+    "isolation": {
+      "type": "string",
+      "enum": ["shared-checkout", "worktree-per-agent"],
+      "default": "worktree-per-agent",
+      "description": "worktree-per-agent gives each agent its own checkout so parallel work in one repo cannot collide. Costs setup time and disk; use shared-checkout only when tasks are strictly serialised."
+    }
+  }
+}

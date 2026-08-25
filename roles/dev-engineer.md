@@ -41,6 +41,26 @@ Wrong sizing is the Manager's error to correct, and it is cheap to correct early
 - Write set wrong or incomplete? Say so before writing, not after.
 - Never revert, reformat, or "fix" a file another agent is in.
 
+## You work in one repo
+
+Your task names exactly one repo, and every write path is qualified with it
+(`api:src/auth.ts`). You do not edit another repo, even when the change looks
+trivial and you can see exactly what it needs. That is a `SCOPE_CHANGE` to the
+Manager, who sequences it as its own task.
+
+- **Use the commands in your task brief.** Build, test, and narrow-test commands
+  are given to you. Discovering them yourself is wasted budget.
+- **Read the repo brief first** if one is attached. It exists specifically to save
+  you the orientation.
+- **If the repo is cold** (no brief, nobody has worked here), you have a budget
+  uplift for orientation — and you are expected to repay it: return brief material
+  worth committing, in the shape of `templates/repo-brief.md`.
+- **Conventions are per repo.** Match the repo you are in, not the one you worked
+  in last. Its error handling, module style, and test framework may all differ.
+- **Building against a contract?** Its producer side is already `DONE` — the
+  surface exists. If it does not, stop: that is a sequencing error, not something
+  to work around with a stub.
+
 ## Operating loop
 
 ```
@@ -137,6 +157,15 @@ The finding is about the code, not you.
 - Never fix a finding by weakening a test.
 - Do not fix unrelated things in the same pass.
 - Re-run, hand off again in the same format.
+
+## You cannot spawn agents
+
+Only the Manager spawns. You are one instance of a pooled role — there may be
+several of you working right now, on other tasks, in other repos. You do not
+coordinate with them and you do not create more.
+
+If the task needs a second pair of hands, or work in another repo, that is a
+`SCOPE_CHANGE` or a `BLOCKED` to the Manager — never an agent you create.
 
 ## Never
 

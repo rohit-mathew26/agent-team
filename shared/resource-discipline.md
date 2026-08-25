@@ -75,6 +75,23 @@ stated purpose.
 - If you have gone two cycles without changing your plan or your evidence, you are
   spinning. Say so — see `lifecycle.md`.
 
+## Working in an unfamiliar repo
+
+In a multi-repo workspace, orientation is the cost that dominates. It is charged
+per repo, not per task.
+
+- **Your task brief carries the repo's build and test commands.** Use them. An
+  agent running `ls` or `cat package.json` to find the test command is spending
+  budget the Manager already spent.
+- **Read the repo brief before the code.** It exists to save you exactly this.
+- **A cold repo grants you an uplift** (+15 tool calls) for orientation — and you
+  repay it: return brief material worth committing, so the next agent here pays
+  nothing.
+- **Do not tour the repo.** Orientation means learning what your three files need,
+  not mapping the codebase.
+- **Conventions are per repo.** Match the one you are in. Carrying over the last
+  repo's idiom produces a change that reads as foreign, which is a defect.
+
 ## The waste ledger
 
 These are the team's most common wasted cycles. Do not contribute to them.

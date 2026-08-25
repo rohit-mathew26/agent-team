@@ -1,0 +1,49 @@
+# Workspace for one cross-repo goal. Valid against schemas/workspace.schema.json.
+# The Manager reads this before decomposing. Its job is to make every repo
+# legible enough that no agent spends budget rediscovering it.
+
+name: <workspace-name>
+goal: <the cross-repo outcome, one sentence>
+
+isolation: worktree-per-agent
+
+repos:
+  - id: api                       # every task and write path is qualified: api:src/auth.ts
+    path: /abs/path/to/api
+    remote: git@github.com:org/api.git
+    branch: main
+    role: producer                # defines the contract others build against
+    brief: briefs/api.md
+    cold: false
+    commands:
+      install: npm ci
+      build: npm run build
+      test: npm test
+      test_one: npm test -- <file>   # narrow run during work
+      lint: npm run lint
+
+  - id: web
+    path: /abs/path/to/web
+    remote: git@github.com:org/web.git
+    branch: main
+    role: consumer
+    depends_on: [api]             # the api contract must land first
+    brief: briefs/web.md
+    cold: true                    # nobody has worked here recently -> budget uplift
+    commands:
+      test_one: pnpm vitest <file>
+      test: pnpm test
+
+  - id: docs
+    path: /abs/path/to/docs
+    role: independent
+    write_allowed: false          # readable for context, never modified in this goal
+
+contracts:
+  - id: CT-1
+    producer: api
+    consumers: [web]
+    surface: POST /v2/session — returns { token, expiresAt }
+    adr: ADR-014
+    compatibility: expand-contract
+    stage: expand

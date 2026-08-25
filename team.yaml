@@ -27,8 +27,14 @@ roles:
   manager:
     prompt: roles/manager.md
     cardinality: singleton
-    spawns: [dev-engineer, qe-engineer, code-reviewer]
-    terminates: [dev-engineer, qe-engineer, code-reviewer]
+    instances: { exactly: 1 }
+    spawned_by: operator            # the only role not spawned by the Manager
+    spawns: [product-manager, architect, dev-engineer, qe-engineer, code-reviewer]
+    spawns_note: >
+      The Manager is the ONLY agent that may spawn. No other role may spawn
+      anything, including its own kind. Singletons are spawned once per goal and
+      reused for its whole life; a second live instance is a protocol violation.
+    terminates: [product-manager, architect, dev-engineer, qe-engineer, code-reviewer]
     may_message: [all]
     owns:
       - task decomposition, scoping, and granularity
@@ -41,6 +47,9 @@ roles:
   product-manager:
     prompt: roles/product-manager.md
     cardinality: singleton
+    instances: { exactly: 1 }
+    spawned_by: manager
+    lifetime: whole_goal            # spawned once, reused, never re-spawned per question
     spawns: []
     may_message: [all]
     directly_queryable_by: [all]
@@ -54,6 +63,9 @@ roles:
   architect:
     prompt: roles/architect.md
     cardinality: singleton
+    instances: { exactly: 1 }
+    spawned_by: manager
+    lifetime: whole_goal            # spawned once, reused, never re-spawned per question
     spawns: []
     may_message: [all]
     directly_queryable_by: [all]
@@ -69,6 +81,8 @@ roles:
     cardinality: pooled
     instances: { min: 1, max: 8, default: 2 }
     spawned_by: manager
+    spawns: []
+    lifetime: one_task              # spawned per task, retired when it lands
     may_message: [all]
     owns:
       - implementation of one narrowly scoped task
@@ -80,6 +94,8 @@ roles:
     cardinality: pooled
     instances: { min: 1, max: 4, default: 1 }
     spawned_by: manager
+    spawns: []
+    lifetime: one_task              # spawned per task, retired when it lands
     may_message: [all]
     owns:
       - test strategy and test plans
@@ -92,6 +108,8 @@ roles:
     cardinality: pooled
     instances: { min: 1, max: 4, default: 1 }
     spawned_by: manager
+    spawns: []
+    lifetime: one_task              # spawned per task, retired when it lands
     may_message: [all]
     owns:
       - correctness and quality gate on every change
@@ -124,6 +142,29 @@ granularity:
   split_if: >
     the task needs two agents, spans more than 3 files, has more than 5 criteria,
     or cannot plausibly finish inside the default budget.
+
+
+# ---------------------------------------------------------------------------
+# Multi-repo. The Manager deploys agents into any repo in the workspace.
+# ---------------------------------------------------------------------------
+workspace:
+  schema: schemas/workspace.schema.json
+  manifest: workspace.yaml          # per-goal; see templates/workspace.yaml
+  isolation: worktree-per-agent     # each agent gets its own checkout
+  task_scope: one_repo_per_task
+  task_scope_note: >
+    An agent is deployed into exactly one repo and works only there. Cross-repo
+    work is a chain of single-repo tasks bound by a contract. The sole exception
+    is the integration verification task, which reads every repo and writes in
+    one.
+  write_path_qualification: "<repo-id>:<path>"
+  ordering: producer_before_consumer
+  consumer_gate: producer_task_DONE   # not 'in review' — DONE
+  default_compatibility: expand-contract
+  cold_repo_uplift:
+    tool_calls: 15
+    applies_to: first task in a repo the team has not worked in
+    repaid_by: the agent returning repo-brief material worth committing
 
 # ---------------------------------------------------------------------------
 # Lifecycle. Stuck agents are terminated and respawned, not coached.
@@ -165,10 +206,24 @@ constraints:
     rule: qe.instance_id != author.instance_id for the same task
   - id: single-writer
     rule: at most one agent holds write ownership of a given path at a time
+  - id: manager-sole-spawner
+    rule: only the manager may spawn or terminate an agent; a spawn from any other role is rejected
   - id: singleton-uniqueness
-    rule: exactly one live instance each of manager, product-manager, architect
+    rule: exactly one live instance each of manager, product-manager, architect; a second spawn is rejected, the existing instance is addressed instead
+  - id: singleton-lifetime
+    rule: product-manager and architect are spawned once per goal and live for its duration; they are not re-spawned per question
+  - id: pooled-multiplicity
+    rule: dev-engineer, qe-engineer, code-reviewer may have many concurrent instances, up to instances.max
   - id: manager-visibility
     rule: messages of type RULING|BLOCKED|HANDOFF|SCOPE_CHANGE|CONFLICT cc the manager
+  - id: single-writer-across-repos
+    rule: write paths are repo-qualified; at most one agent holds a given <repo-id>:<path> workspace-wide
+  - id: one-repo-per-task
+    rule: task.repo is set and every write_path is prefixed with it; only an integration-verification task may read across repos
+  - id: read-only-repos
+    rule: no write to a repo with write_allowed=false; needed changes become a SCOPE_CHANGE
+  - id: producer-first
+    rule: a consumer task is not assigned until its producer task is DONE
   - id: budget-hard-stop
     rule: an agent at 100% of a granted budget stops and reports; it does not continue
   - id: conflict-monopoly

@@ -46,6 +46,10 @@ spawns you from a session and reads what you return, so adapt as follows:
 - **Stuck is self-reported.** No supervisor is watching your progress. When a
   trigger fires, return `SELF_STUCK` with a complete `RULED_OUT` — that brief is
   the only thing that survives you.
+- **You must not spawn agents.** You have no spawn authority under this spec, and
+  the session is the Manager. If you need work done that is not yours, put it in
+  your return — as `SCOPE_CHANGE`, `BLOCKED`, or a named follow-up — and let the
+  Manager decide. This holds even when you can see exactly what a helper would do.
 - **Your final text is the return value,** not a message to a human. No preamble,
   no summary. Emit the artifact the spec calls for.
 EOF
@@ -107,13 +111,26 @@ that holds authority; the other roles are spawned as subagents:
 | Independent verification | \`team-qe-engineer\` |
 | The quality gate before QE | \`team-code-reviewer\` |
 
-Singletons are singletons: reuse the same PM and Architect agent across the whole
-task via SendMessage rather than spawning a fresh one per question. Pooled roles
-are spawned per task and not reused across unrelated tasks.
+**You are the only agent that spawns.** No subagent you create may spawn another;
+their prompts forbid it. If one returns work it wants done, you scope it and
+decide.
+
+**Singletons are spawned once and reused for the whole goal.** Spawn
+\`team-product-manager\` and \`team-architect\` at most once each, then reach them
+again with SendMessage for every later question. A second Agent call for either
+role creates a second source of product or technical truth and is a protocol
+violation — if you have lost the handle, use ListAgents to find it rather than
+spawning again.
+
+**Pooled roles are spawned per task, many at once.** A fresh \`team-dev-engineer\`,
+\`team-qe-engineer\`, or \`team-code-reviewer\` per task, up to the pool caps
+(8/4/4), retired when the task lands and never reused for unrelated work.
 
 Enforce yourself what the orchestrator would enforce: never route a change to a
 reviewer or QE agent that authored it, never give two concurrent tasks the same
-write path, and never spawn a fourth agent at the same scope after two respawns.
+write path (repo-qualified, workspace-wide), never assign a consumer task before
+its producer task is DONE, and never spawn a fourth agent at the same scope after
+two respawns.
 
 Spec: ${ROOT}
 EOF

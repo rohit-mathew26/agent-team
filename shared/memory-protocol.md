@@ -42,6 +42,21 @@ The test: could an agent who never saw the original exchange act on this
 correctly? If not, it is under-distilled. Is it longer than the rule requires? It
 is over-recorded.
 
+## Scope memories to a repo
+
+In a multi-repo workspace, most of what is worth remembering is true of **one
+repo**, not all of them: a flaky suite, a generated file that looks editable, a
+build step with a trap in it.
+
+Set `scope` to the repo id (`scope: api`) so it reaches only agents deployed
+there. A repo-specific rule written as `scope: all` costs every other agent
+context for something that will never apply to them, and invites being applied
+where it is wrong.
+
+Repo-specific knowledge that is stable belongs in that repo's brief
+(`templates/repo-brief.md`) rather than in memory. Use memory for what the brief
+missed — and when the same thing is missed twice, fix the brief.
+
 ## Format
 
 One fact per file, `memories/<type>/<slug>.md`, valid against

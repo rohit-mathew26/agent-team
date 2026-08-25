@@ -4,28 +4,104 @@
   "title": "Task",
   "description": "The unit of assignment. Issued by the Manager, tightly scoped and self-contained: the assignee cannot see the conversation that produced it and must not spend budget re-deriving it.",
   "type": "object",
-  "required": ["id", "title", "type", "assignee_role", "context", "acceptance_criteria", "write_paths", "budget", "state"],
+  "required": [
+    "id",
+    "title",
+    "type",
+    "repo",
+    "assignee_role",
+    "context",
+    "acceptance_criteria",
+    "write_paths",
+    "budget",
+    "state"
+  ],
   "additionalProperties": false,
   "properties": {
-    "id": { "type": "string", "pattern": "^[A-Z]+-[0-9]+$" },
-    "title": { "type": "string", "maxLength": 120 },
-    "type": { "enum": ["feature", "bug", "refactor", "spike", "test", "docs"] },
-    "assignee_role": { "enum": ["dev-engineer", "qe-engineer", "code-reviewer"] },
-    "assignee_instance": { "type": "string", "description": "Set at assignment; must differ from author_instance for review/QE tasks." },
-    "author_instance": { "type": "string", "description": "Instance that produced the artifact under review or test." },
-
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Z]+-[0-9]+$"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 120
+    },
+    "type": {
+      "enum": [
+        "feature",
+        "bug",
+        "refactor",
+        "spike",
+        "test",
+        "docs"
+      ]
+    },
+    "assignee_role": {
+      "enum": [
+        "dev-engineer",
+        "qe-engineer",
+        "code-reviewer"
+      ]
+    },
+    "assignee_instance": {
+      "type": "string",
+      "description": "Set at assignment; must differ from author_instance for review/QE tasks."
+    },
+    "author_instance": {
+      "type": "string",
+      "description": "Instance that produced the artifact under review or test."
+    },
     "context": {
       "type": "object",
-      "required": ["problem", "relevant_paths"],
+      "required": [
+        "problem",
+        "relevant_paths"
+      ],
       "properties": {
-        "problem": { "type": "string", "description": "What is wrong or missing, in behaviour terms." },
-        "relevant_paths": { "type": "array", "items": { "type": "string" }, "description": "Where to start reading. Saves the assignee an exploration budget." },
-        "prior_decisions": { "type": "array", "items": { "type": "string" }, "description": "ADR ids, PRD sections, ruling ids that bind this task." },
-        "memory_refs": { "type": "array", "items": { "type": "string", "pattern": "^mem-[0-9]{4}$" }, "description": "Memory entries that apply. The assignee reads these before starting." },
-        "interfaces": { "type": "string", "description": "Contracts the implementation must honour." }
+        "problem": {
+          "type": "string",
+          "description": "What is wrong or missing, in behaviour terms."
+        },
+        "relevant_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Where to start reading. Saves the assignee an exploration budget."
+        },
+        "prior_decisions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "ADR ids, PRD sections, ruling ids that bind this task."
+        },
+        "memory_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^mem-[0-9]{4}$"
+          },
+          "description": "Memory entries that apply. The assignee reads these before starting."
+        },
+        "interfaces": {
+          "type": "string",
+          "description": "Contracts the implementation must honour."
+        },
+        "repo_brief": {
+          "type": "string",
+          "description": "Path to this repo's brief. Buys back the orientation budget; required for a cold repo."
+        },
+        "commands": {
+          "type": "object",
+          "description": "Build/test commands for this repo, copied from the workspace. An agent discovering these is a workspace the Manager failed to fill in."
+        },
+        "contract": {
+          "type": "string",
+          "description": "Contract id this task implements or consumes, if any."
+        }
       }
     },
-
     "acceptance_criteria": {
       "type": "array",
       "minItems": 1,
@@ -33,65 +109,170 @@
       "description": "More than five means this is not one task. Split it.",
       "items": {
         "type": "object",
-        "required": ["id", "criterion"],
+        "required": [
+          "id",
+          "criterion"
+        ],
         "properties": {
-          "id": { "type": "string" },
-          "criterion": { "type": "string", "description": "Observable and binary. GIVEN/WHEN/THEN preferred." },
-          "source": { "type": "string", "description": "PRD section or PM ruling this came from." }
+          "id": {
+            "type": "string"
+          },
+          "criterion": {
+            "type": "string",
+            "description": "Observable and binary. GIVEN/WHEN/THEN preferred."
+          },
+          "source": {
+            "type": "string",
+            "description": "PRD section or PM ruling this came from."
+          }
         }
       }
     },
-
     "write_paths": {
       "type": "array",
       "minItems": 1,
       "maxItems": 3,
-      "description": "Complete set of files the assignee may modify. More than three means split the task. Must be disjoint from any concurrently assigned task.",
-      "items": { "type": "string" }
-    },
-
-    "budget": {
-      "type": "object",
-      "required": ["tool_calls", "commands", "wall_clock_minutes", "messages_out"],
-      "description": "Hard ceilings. Warn at 70%, stop at 100% and request a specific extension.",
-      "properties": {
-        "tool_calls": { "type": "integer", "minimum": 1, "maximum": 120, "default": 40 },
-        "commands": { "type": "integer", "minimum": 0, "maximum": 30, "default": 10 },
-        "wall_clock_minutes": { "type": "integer", "minimum": 1, "maximum": 60, "default": 20 },
-        "messages_out": { "type": "integer", "minimum": 1, "maximum": 20, "default": 8 },
-        "granted_extension": { "type": "string", "description": "What the Manager granted and why. Extensions are specific amounts with reasons, never 'carry on'." }
+      "description": "Complete set of files the assignee may modify, each qualified with the repo id ('api:src/auth.ts'). More than three means split the task. Must be disjoint from any concurrently assigned task ACROSS the whole workspace.",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9-]+:.+$"
       }
     },
-
-    "depends_on": { "type": "array", "items": { "type": "string" } },
-    "out_of_scope": { "type": "array", "items": { "type": "string" }, "description": "Named explicitly so the assignee does not widen the task." },
-
-    "state": { "enum": ["ASSIGNED", "ACCEPTED", "IN_PROGRESS", "BLOCKED", "READY_FOR_REVIEW", "READY_FOR_QE", "DONE", "FAILED", "DESCOPED", "TERMINATED"] },
-
+    "budget": {
+      "type": "object",
+      "required": [
+        "tool_calls",
+        "commands",
+        "wall_clock_minutes",
+        "messages_out"
+      ],
+      "description": "Hard ceilings. Warn at 70%, stop at 100% and request a specific extension.",
+      "properties": {
+        "tool_calls": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 120,
+          "default": 40
+        },
+        "commands": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30,
+          "default": 10
+        },
+        "wall_clock_minutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60,
+          "default": 20
+        },
+        "messages_out": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20,
+          "default": 8
+        },
+        "granted_extension": {
+          "type": "string",
+          "description": "What the Manager granted and why. Extensions are specific amounts with reasons, never 'carry on'."
+        },
+        "cold_repo_uplift": {
+          "type": "integer",
+          "description": "Extra tool calls granted for orientation in a repo the team has not worked in. Repaid by returning repo-brief material."
+        }
+      }
+    },
+    "depends_on": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "out_of_scope": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Named explicitly so the assignee does not widen the task."
+    },
+    "state": {
+      "enum": [
+        "ASSIGNED",
+        "ACCEPTED",
+        "IN_PROGRESS",
+        "BLOCKED",
+        "READY_FOR_REVIEW",
+        "READY_FOR_QE",
+        "DONE",
+        "FAILED",
+        "DESCOPED",
+        "TERMINATED"
+      ]
+    },
     "blocker": {
       "type": "object",
       "properties": {
-        "question": { "type": "string" },
-        "owner": { "enum": ["product-manager", "architect", "manager", "peer", "human"] },
-        "asked_directly": { "type": "boolean", "description": "Agents ask owners directly; the Manager is cc'd, not in the path." },
-        "raised_at_state": { "type": "string" }
+        "question": {
+          "type": "string"
+        },
+        "owner": {
+          "enum": [
+            "product-manager",
+            "architect",
+            "manager",
+            "peer",
+            "human"
+          ]
+        },
+        "asked_directly": {
+          "type": "boolean",
+          "description": "Agents ask owners directly; the Manager is cc'd, not in the path."
+        },
+        "raised_at_state": {
+          "type": "string"
+        }
       }
     },
-
     "lifecycle": {
       "type": "object",
       "description": "Populated by the Manager across respawns.",
       "properties": {
-        "respawn_count": { "type": "integer", "minimum": 0, "maximum": 2, "description": "Two respawns maximum. After that the task is rescoped or escalated." },
+        "respawn_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2,
+          "description": "Two respawns maximum. After that the task is rescoped or escalated."
+        },
         "respawn_brief": {
           "type": "object",
           "description": "From the terminated agent's SELF_STUCK message. The replacement reads ruled_out first.",
           "properties": {
-            "symptom": { "type": "string" },
-            "tried": { "type": "array", "items": { "type": "string" }, "description": "Distinct hypotheses, not repeats." },
-            "ruled_out": { "type": "array", "items": { "type": "string" }, "description": "Paths the replacement must not re-attempt. The most valuable field on this team." },
-            "suspect": { "type": "string" },
-            "preserved_work": { "type": "array", "items": { "type": "string" } }
+            "symptom": {
+              "type": "string"
+            },
+            "tried": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Distinct hypotheses, not repeats."
+            },
+            "ruled_out": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Paths the replacement must not re-attempt. The most valuable field on this team."
+            },
+            "suspect": {
+              "type": "string"
+            },
+            "preserved_work": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
           }
         },
         "spend_history": {
@@ -100,17 +281,38 @@
           "items": {
             "type": "object",
             "properties": {
-              "instance": { "type": "string" },
-              "tool_calls": { "type": "integer" },
-              "commands": { "type": "integer" },
-              "minutes": { "type": "integer" },
-              "outcome": { "enum": ["delivered", "stuck", "blocked", "terminated"] }
+              "instance": {
+                "type": "string"
+              },
+              "tool_calls": {
+                "type": "integer"
+              },
+              "commands": {
+                "type": "integer"
+              },
+              "minutes": {
+                "type": "integer"
+              },
+              "outcome": {
+                "enum": [
+                  "delivered",
+                  "stuck",
+                  "blocked",
+                  "terminated"
+                ]
+              }
             }
           }
         }
       }
     },
-
-    "notes": { "type": "string" }
+    "notes": {
+      "type": "string"
+    },
+    "repo": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "description": "Workspace repo id this task is deployed into. Exactly one \u2014 an agent works in one repo per task. 'integration' is reserved for the cross-repo verification task, which reads everywhere and writes in one place."
+    }
   }
 }

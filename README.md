@@ -22,7 +22,7 @@ Singletons hold **authority** — one decision-maker per domain, so no worker ev
 has to reconcile contradictory rulings. Pooled roles hold **capacity** — spawned
 per task, retired when it lands.
 
-## The four ideas this team runs on
+## The five ideas this team runs on
 
 **1. Agents talk directly; the Manager resolves.**
 Any agent may message any other, including the PM and the Architect. The Manager
@@ -51,6 +51,16 @@ agent is expected to notice first and send `SELF_STUCK`, whose `RULED_OUT` field
 becomes the replacement's brief. Two respawns maximum per task; after that the
 task is the problem.
 → [shared/lifecycle.md](shared/lifecycle.md) · [workflows/stuck-recovery.md](workflows/stuck-recovery.md)
+
+**5. The Manager deploys agents across repos.**
+A workspace manifest lists the repos in scope with their roles, dependencies,
+build commands, and whether they're writable. One task = one repo — cross-repo
+work is a chain of single-repo tasks bound by an Architect-owned contract, since
+there is no atomic merge across repos. Write paths are repo-qualified
+(`api:src/auth.ts`) so single-writer holds workspace-wide, producers land before
+consumers, and cold repos get an orientation uplift that the first agent repays by
+writing the repo brief.
+→ [workflows/cross-repo-change.md](workflows/cross-repo-change.md) · [schemas/workspace.schema.json](schemas/workspace.schema.json)
 
 ## Memory
 
@@ -119,8 +129,9 @@ shared/      fragments every role inherits
 memories/    durable team memory — feedback, rulings, failures + the index
 workflows/   role-crossing sequences
 schemas/     JSON Schema for artifacts handed between roles
-templates/   document starters (task, PRD, ADR, memory)
-team.yaml    roster, budgets, granularity limits, stuck triggers, constraints
+templates/   document starters (task, PRD, ADR, memory, workspace, repo brief)
+team.yaml    roster, budgets, granularity, stuck triggers, workspace rules
+bin/         build the spec into Claude Code agents/skill; install locally
 ```
 
 ## Composing a runtime prompt
@@ -157,3 +168,8 @@ contradicts a shared fragment, the role prompt wins.
 7. **No silent budget overruns.** At the ceiling an agent stops and asks.
 8. **Nothing worth keeping dies with an agent.** If it changes how a future task
    runs, it goes to `memories/`.
+9. **One repo per task.** An agent is deployed into exactly one repo. Only the
+   integration-verification task reads across repos, and it still writes in one.
+10. **Only the Manager spawns.** No other role may create an agent. Singletons are
+    spawned once and kept for the whole goal; pooled roles are spawned per task,
+    many at once, and retired when it lands.

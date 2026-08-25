@@ -32,6 +32,15 @@ Companion to [README.md](README.md).
 | F23 | Binding decisions recorded as ADRs / PRD amendments | [templates/](templates/) |
 | F24 | Four workflows: feature, bug fix, spike, stuck recovery | [workflows/](workflows/) |
 | F25 | PM-only descope; PM-only acceptance | [roles/product-manager.md](roles/product-manager.md) |
+| F26 | Multi-repo deployment from a workspace manifest | [schemas/workspace.schema.json](schemas/workspace.schema.json), [templates/workspace.yaml](templates/workspace.yaml) |
+| F27 | One task = one repo; repo-qualified write paths | [schemas/task.schema.json](schemas/task.schema.json) |
+| F28 | Architect-owned cross-repo contracts + compatibility strategy | [roles/architect.md](roles/architect.md) |
+| F29 | Producer-before-consumer sequencing, each stage shippable alone | [workflows/cross-repo-change.md](workflows/cross-repo-change.md) |
+| F30 | Cold-repo orientation uplift, repaid as a repo brief | [templates/repo-brief.md](templates/repo-brief.md) |
+| F31 | Cross-repo integration verification; read-only repos | [roles/qe-engineer.md](roles/qe-engineer.md) |
+| F32 | Manager is the sole spawner; no other role may spawn | [shared/lifecycle.md](shared/lifecycle.md) |
+| F33 | Singletons: exactly one instance, spawned once, kept for the whole goal | [team.yaml](team.yaml) |
+| F34 | Pooled roles: many concurrent instances, one task each | same |
 
 ---
 
@@ -253,6 +262,51 @@ and reproduction is itself capped — if QE cannot reproduce inside budget, "not
 reproducible, here is what was tried" is a valid result and the PM decides whether
 to spend more. The Dev then states the **root cause**, not just the patch.
 
+### J. One goal, three repos — F26, F27, F28, F29, F30, F31
+
+`POST /v2/session` must return `expiresAt`, and the web client must use it.
+Workspace: `api` (producer), `web` (consumer, cold), `docs` (read-only).
+
+**Architect rules the contract first** — `CT-1`, `expand-contract`, `ADR-014`.
+Without it, both repos invent an incompatible shape.
+
+**Stage 1, expand.** One dev in `api` adds `expiresAt` *alongside* the existing
+field. Write paths `api:src/session.ts`, `api:src/schema.ts`. Reviewed, verified,
+`DONE`, shippable on its own.
+
+**Stage 2, migrate.** Only now is the `web` task assigned — the gate is the
+producer being `DONE`, not in review. `web` is cold, so the task carries `+15`
+tool calls and the dev returns a repo brief with it; the next agent into `web`
+pays nothing. The dev notices `docs` is stale and does **not** touch it —
+`write_allowed: false` makes that a `SCOPE_CHANGE`, not an edit.
+
+**Stage 3, contract.** A separate task removes the old field — and only after
+`web` is not merely merged but *deployed*. Folding this into stage 1 would have
+recreated the atomic-merge problem that expand-contract exists to avoid.
+
+**Stage 4, integration.** One QE agent gets the only task allowed to span repos:
+reads `api` and `web`, writes contract tests in `api`, checks both skew directions
+(old consumer against new producer, and the reverse). Defects are reported per
+repo, against a specific criterion.
+
+### K. An agent wants help — F32, F33, F34
+
+A Dev deep in a task sees that the fixture generator also needs fixing, and that
+a second agent could do it in parallel. It **cannot spawn one**. It sends a
+`SCOPE_CHANGE` and keeps going; the Manager decides whether that becomes a task.
+
+The rule holds because only the Manager sees the whole workspace — it is the only
+role that can guarantee two agents never hold the same write path, that a reviewer
+is never the author, and that pool caps and budgets mean anything. A self-spawned
+helper breaks all three silently.
+
+The same rule governs the singletons from the other direction. When a second Dev
+needs a product answer, the Manager does **not** spawn a second Product Manager —
+it addresses the one that has been alive since the goal started. A second PM is a
+second source of product truth, which is the exact thing having one PM prevents.
+Pooled roles are the opposite: eight Devs at once is normal, each on its own task,
+each retired when it lands.
+
 ---
 
 ## Coverage
@@ -274,3 +328,5 @@ to spend more. The Dev then states the **root cause**, not just the patch.
 | F21, F22 | Step 8, use case H |
 | F23, F25 | Steps 1, 2 |
 | F24 | Use cases G, I |
+| F26–F31 | Use case J |
+| F32–F34 | Use case K |

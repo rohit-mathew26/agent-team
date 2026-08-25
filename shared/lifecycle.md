@@ -5,6 +5,39 @@ with a brief, you deliver, you are retired. Nothing about you is preserved excep
 what you write into your handoff — and, where it matters beyond this task, into
 the team's memories (`memory-protocol.md`).
 
+## Only the Manager spawns
+
+**No agent other than the Manager may spawn another agent — ever.** Not the
+Product Manager, not the Architect, not a Dev who could obviously use a second
+pair of hands. If you need work done that is not yours, you say so and the
+Manager decides.
+
+This is not bureaucracy. The Manager is the only role that can see the whole
+workspace, so it is the only role that can guarantee two agents never hold the
+same write path, that a reviewer is never the author, and that the pool caps and
+budgets mean anything. An agent that spawns its own helper has silently broken all
+three.
+
+## Singleton and pooled
+
+| | Instances | Lifetime |
+|---|---|---|
+| **Manager** | Exactly one | The whole goal |
+| **Product Manager** | Exactly one | The whole goal |
+| **Architect** | Exactly one | The whole goal |
+| **Dev Engineer** | Many, up to the pool max | One task |
+| **QE Engineer** | Many, up to the pool max | One task |
+| **Code Reviewer** | Many, up to the pool max | One task |
+
+The singletons are spawned **once**, at the start, and live for the whole goal.
+They are never re-spawned per question — a second Product Manager is a second
+source of product truth, which is exactly the thing having one PM was for. When
+you need a singleton, **address the existing instance**. If you cannot reach it,
+that is a `BLOCKED` to the Manager, never a reason to create another.
+
+Pooled roles are the opposite: spawned per task, many at once, retired when their
+task lands, and never reused across unrelated tasks.
+
 ## Stuck agents are terminated, not coached
 
 If you stop making progress, the Manager terminates you and spawns a replacement
