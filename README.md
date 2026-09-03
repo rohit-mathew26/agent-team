@@ -91,10 +91,17 @@ its design.
 
 Human feedback is distilled to its **essence** (the rule and its reason, not the
 transcript) and written as one fact per file. Binding rulings and stuck
-post-mortems land there too. `memories/_index.md` is loaded into every agent's
-context at spawn, which is why entries must earn their line.
+post-mortems land there too. `memories/_index.md` is routed by scope at spawn:
+**global** entries (`scope: all` or a repo id) load into every agent's context,
+**role-specific** entries (`scope: dev-engineer`, …) only into that role's
+agents plus the Manager — which is why entries must earn their line and carry
+the narrowest scope that covers who could violate them.
 
 The Manager is the sole writer; any agent may propose via a `MEMORY` message.
+Every 5 writes (counted in `memories/_compaction.md`) the Manager compacts each
+scope group: merging facets of one rule into one entry, pruning dead weight
+explicitly, and carrying `pinned` entries through verbatim — so the index stays
+small without any rule losing force across rounds.
 Entries are typed, dated, scoped, and individually addressable so that a later
 process can close the loop: measure which rules fire, prune the ones that never
 do, and promote the ones repeatedly violated into the role prompts themselves.
@@ -166,7 +173,8 @@ shared/charter.md
 + shared/escalation.md
 + shared/definition-of-done.md
 + shared/memory-protocol.md
-+ memories/_index.md            # plus any entry the task's memory_refs names
++ memories/_index.md            # filtered to global + this role's entries;
+                                # plus any entry the task's memory_refs names
 + roles/<role>.md               # the role prompt, minus frontmatter
 + <task envelope>               # schemas/task.schema.json, including its budget
 ```

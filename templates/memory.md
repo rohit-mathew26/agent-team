@@ -1,11 +1,12 @@
 ---
 id: mem-XXXX
 type: feedback | ruling | failure
-scope: all | <role> | <path or component>
+scope: all | <role> | <path or component>   # all/repo = global; a role name reaches only that role (+ Manager)
 source: human | product-manager | architect | manager | <role>#<instance>
 date: YYYY-MM-DD
 status: active
 origin_task: <task-id or none>
+pinned: false   # optional; true = survives compaction verbatim (Manager sets, sparingly)
 ---
 
 <The rule, as an instruction a future agent can act on. One fact. If you are

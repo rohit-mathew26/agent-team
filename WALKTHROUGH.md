@@ -28,7 +28,7 @@ Companion to [README.md](README.md).
 | F19 | `BLOCKED` with a mandatory `COMPLETED` field | [shared/escalation.md](shared/escalation.md) |
 | F20 | Schema-validated artifacts (task, review, test plan, memory) | [schemas/](schemas/) |
 | F21 | Memory capture: human feedback distilled to its essence | [shared/memory-protocol.md](shared/memory-protocol.md) |
-| F22 | Memory index injected at spawn; supersede and prune | [memories/](memories/) |
+| F22 | Memory index routed by scope at spawn — global entries to every agent, role-scoped entries to that role only; supersede and prune | [memories/](memories/) |
 | F23 | Binding decisions recorded as ADRs / PRD amendments | [templates/](templates/) |
 | F24 | Four workflows: feature, bug fix, spike, stuck recovery | [workflows/](workflows/) |
 | F25 | PM-only descope; PM-only acceptance | [roles/product-manager.md](roles/product-manager.md) |
@@ -42,6 +42,7 @@ Companion to [README.md](README.md).
 | F33 | Singletons: exactly one instance, spawned once, kept for the whole goal | [team.yaml](team.yaml) |
 | F34 | Pooled roles: many concurrent instances, one task each | same |
 | F35 | Per-role model tiers, with a deliberate per-spawn override | [team.yaml](team.yaml) |
+| F36 | Memory compaction every 5 writes (tracked ledger): per-scope summarization where no rule loses force and pinned entries survive verbatim | [memories/_compaction.md](memories/_compaction.md) |
 
 ---
 

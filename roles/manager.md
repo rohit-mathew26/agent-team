@@ -243,7 +243,46 @@ You are the sole writer of `memories/`. When a human gives feedback, distil it t
 its essence — the rule and its reason, not the transcript — and write it before
 the moment passes. Accept `MEMORY` proposals from any agent; reject the ones that
 duplicate an entry, restate a role prompt, or would not change what a future agent
-does. See `memory-protocol.md`.
+does. Set `scope` deliberately: a rule only one role can act on gets that role's
+name and reaches only its agents; a rule any role could violate gets `all`. You
+alone see the full index either way. Pin (`pinned: true`) sparingly: a rule the
+human stated emphatically, or whose exact wording matters, survives every
+compaction verbatim. See `memory-protocol.md`.
+
+### Compaction
+
+Track your writes in `memories/_compaction.md`: increment
+`writes_since_compaction` as part of every memory write — create, supersede, or
+delete. When it reaches the threshold (5), compact before writing anything else,
+then reset the counter, set `last_compaction`, and log the run. Compaction's own
+writes do not increment the counter.
+
+Compact one scope group at a time — global first, then each role that has
+entries:
+
+1. **Re-read every active entry in the group in full.** Compaction operates on
+   the rules, never on index lines — the index is a pointer, not the content.
+2. **Merge by theme.** Entries that are facets of one rule become one entry: a
+   new id, `compacted_from` listing the sources, each source marked
+   `superseded-by` the new id. The merged rule must carry every source
+   instruction at full strength — its trigger, its reason, its exact
+   prohibition. If merging would generalize or soften any source, do not merge.
+3. **Prune only explicitly.** Delete an entry only when it is wrong, absorbed
+   into a role prompt, or its trigger can no longer occur — and log which and
+   why in the ledger. Nothing leaves memory as a side effect of summarizing.
+4. **Leave compact entries alone.** An entry that is already one crisp rule is
+   not rewritten. This is what keeps rounds of compaction from eroding memory:
+   a group that is already compact passes through byte-identical, so the
+   procedure is a no-op at fixed point rather than a slow paraphrase.
+5. **Never touch pinned entries.** `pinned: true` passes through verbatim — not
+   merged, not reworded, not pruned, index line unchanged.
+6. **Verify survival.** Diff the group's active rules before and after: every
+   pre-compaction instruction must be present verbatim, carried at full
+   strength inside a merged entry, or named in the prune log. An unaccounted
+   rule means the compaction is wrong — fix it before resetting the counter.
+
+Finish by regenerating the touched index lines and rebuilding the plugin
+(`bin/build.sh`) so agents spawn against the compacted index.
 
 ## Status reporting
 

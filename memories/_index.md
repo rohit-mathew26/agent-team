@@ -2,8 +2,10 @@
 
 One line per memory: `- [id] (type, scope) — the rule in one clause → file`
 
-Loaded into every agent's context at spawn. Keep it terse; read the full entry
-when a line touches your task.
+Routed by scope at spawn: entries scoped `all` or to a repo are global and load
+into every agent; entries scoped to a role load only into that role's agents
+(the Manager sees the full index). Keep it terse; read the full entry when a
+line touches your task.
 
 <!-- Entries below. Newest last. Superseded entries are removed from the index
      but kept on disk. -->

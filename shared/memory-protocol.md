@@ -25,7 +25,8 @@ written to memories, or it is lost.
 - Anything you inferred rather than observed.
 
 If a memory does not change what a future agent would **do**, it is noise. The
-index is loaded into every agent's context at spawn; every line costs everyone.
+index is loaded into agents' context at spawn; every line costs every agent in
+its scope.
 
 ## Distil to the essence
 
@@ -41,6 +42,27 @@ not the transcript. Strip the occasion, keep the rule.
 The test: could an agent who never saw the original exchange act on this
 correctly? If not, it is under-distilled. Is it longer than the rule requires? It
 is over-recorded.
+
+## Global vs role-specific memory
+
+Every memory carries a `scope` that decides who loads it:
+
+- **Global** (`scope: all`, or a repo id / path): in every agent's index. Use for
+  rules any role could violate — tone of external artifacts, git hygiene,
+  workspace conventions.
+- **Role-specific** (`scope: <role>`, e.g. `scope: dev-engineer`): loaded only
+  into that role's agents, plus the Manager, who as sole writer always sees the
+  full index. Use for rules only one role can act on — how a reviewer phrases
+  findings, what a QE agent must re-run, what a dev must include in a handoff.
+
+Default to the narrowest scope that covers everyone who could violate the rule.
+A dev-only rule scoped `all` costs the PM, the Architect, and every reviewer
+context for something they can never apply; a cross-role rule scoped to one role
+silently exempts everyone else. When feedback names a role's behaviour, scope it
+to the role; when it names an artifact any role produces, scope it `all`.
+
+Valid role scopes: `manager`, `product-manager`, `architect`, `dev-engineer`,
+`qe-engineer`, `code-reviewer`.
 
 ## Scope memories to a repo
 
@@ -92,8 +114,9 @@ status: active | superseded-by-<id>
   EVIDENCE:<what happened that prompted it>
   ```
 
-- **Every agent reads `memories/_index.md` at spawn.** It is part of the prompt
-  stack. Read the full entry when an index line touches your task.
+- **Every agent gets its slice of the index at spawn.** Global entries reach
+  everyone; role-scoped entries reach only their role (the Manager sees all).
+  Read the full entry when an index line touches your task.
 - **Check before writing.** If an entry already covers it, update that entry
   rather than adding a near-duplicate. Two entries saying almost the same thing
   is worse than one.
@@ -102,6 +125,28 @@ status: active | superseded-by-<id>
   auditable.
 - **Delete what turns out to be wrong.** A stale memory is worse than no memory:
   agents follow it.
+
+## Compaction
+
+Memory grows one write at a time and is read at every spawn, so it is compacted
+on a cadence: after every 5 writes — counted in `memories/_compaction.md` — the
+Manager summarizes each scope group (global, then each role's), merging entries
+that are facets of one rule, pruning dead weight, and tightening index lines.
+The procedure and its cadence tracking are the Manager's duty; the full
+procedure is in the Manager role prompt.
+
+Two guarantees hold across rounds, so repeated compaction cannot erode memory:
+
+- **No rule loses force.** A merged entry carries every constituent instruction
+  at full strength — trigger, reason, and exact prohibition. A merge that would
+  generalize or soften any source is not made. Entries leave memory only by
+  explicit prune with a logged reason, never as a side effect of summarizing.
+- **`pinned: true` is untouchable.** An entry pinned by the Manager — because a
+  human stated it emphatically, or its exact wording matters — passes through
+  every round verbatim: not merged, not reworded, not pruned.
+
+Any agent may flag a rule as pin-worthy in a `MEMORY` proposal; only the Manager
+sets the field.
 
 ## The loop
 
@@ -114,7 +159,8 @@ status: active | superseded-by-<id>
                                                          │
                             ┌────────────────────────────┘
                             v
-                 injected at spawn into every agent's prompt stack
+              routed by scope at spawn: global entries to every
+              agent, role-scoped entries to that role only
                             │
                             v
                     agents apply the rule
@@ -123,11 +169,15 @@ status: active | superseded-by-<id>
         outcomes + spend recorded in handoffs and retros
                             │
                             v
-        [future] rules that never fire are pruned;
-                 rules that keep being violated get promoted
+        every 5 writes: compaction — merge facets, prune dead
+        weight, carry pinned entries verbatim
+                            │
+                            v
+        [future] rules that keep being violated get promoted
                  into the role prompts themselves
 ```
 
-The last stage is not automated yet. `memories/` is built so it can be: entries
-are typed, dated, scoped, and individually addressable, so a later process can
-measure which ones are doing work and which are dead weight.
+Compaction closes the pruning half of the loop on a fixed cadence. Promotion
+into role prompts is still manual; entries stay typed, dated, scoped, and
+individually addressable so a later process can measure which ones are doing
+work and which are dead weight.

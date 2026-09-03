@@ -1,10 +1,13 @@
 # Memories
 
-Durable team memory. One fact per file. Written by the Manager, read by everyone
-at spawn.
+Durable team memory. One fact per file. Written by the Manager, routed by
+`scope` at spawn: global entries (`scope: all` or a repo id) reach every agent;
+role-scoped entries (`scope: dev-engineer`, …) reach only that role's agents
+plus the Manager, who always sees the full index.
 
 ```
-_index.md          one line per memory — loaded into every agent's context
+_index.md          one line per memory — filtered by scope into agents' context
+_compaction.md     compaction ledger — write counter and run log, Manager-only
 feedback/          human feedback, distilled to its essence
 rulings/           PM and Architect decisions that bind work beyond one task
 failures/          stuck post-mortems: the dead ends worth never repeating
@@ -18,14 +21,20 @@ Start from [`../templates/memory.md`](../templates/memory.md).
 ## Rules of the folder
 
 1. **One fact per file.** A file with two rules gets half-applied.
-2. **`_index.md` holds pointers, never content.** It is loaded in full, every
-   spawn, for every agent. Treat each line as expensive.
+2. **`_index.md` holds pointers, never content.** Every global line is loaded at
+   every spawn, for every agent; role-scoped lines at every spawn of that role.
+   Treat each line as expensive, and scope as narrowly as the rule allows.
 3. **Only the Manager writes here.** Everyone else proposes via a `MEMORY`
    message.
 4. **Supersede, don't overwrite.** Mark the old entry `superseded-by-<id>`. The
    history is what makes this auditable later.
 5. **Prune aggressively.** An entry nobody has applied in a long while is either
    wrong or already absorbed into a role prompt. Both mean it should go.
+6. **Compact every 5 writes.** The counter lives in `_compaction.md`; at the
+   threshold the Manager summarizes each scope group before writing anything
+   else. Merges preserve every rule at full strength; `pinned: true` entries
+   pass through verbatim; prunes are explicit and logged. Procedure in
+   `roles/manager.md`.
 
 ## Why this exists separately from the role prompts
 

@@ -22,6 +22,40 @@ STACK=(
 # Strip YAML frontmatter (everything through the second '---').
 body() { awk 'BEGIN{n=0} /^---$/ && n<2 {n++; next} n>=2 {print}' "$1"; }
 
+ROLES="manager product-manager architect dev-engineer qe-engineer code-reviewer"
+
+# Filter memories/_index.md by scope. Mode 'global' emits the index prose plus
+# every line whose scope is not a role name (all, repo ids, paths); mode <role>
+# emits only lines scoped to that role. Role-scoped entries reach only their
+# role's agent — everyone else never pays for them.
+index_lines() {
+  local mode="$1"
+  sed '/^<!--/,/-->/d' memories/_index.md | awk -v mode="$mode" -v roles="$ROLES" '
+    BEGIN { n = split(roles, r, " "); for (i = 1; i <= n; i++) isrole[r[i]] = 1 }
+    /^- \[mem-/ {
+      s = $0
+      sub(/^- \[mem-[0-9]+\] \([^,]+, /, "", s); sub(/\).*/, "", s)
+      if (mode == "global") { if (!(s in isrole)) print }
+      else if (s == mode) print
+      next
+    }
+    mode == "global" { print }
+  '
+}
+
+# The memory snapshot for one role: global entries, then that role's own.
+memory_section() {
+  local role="$1"
+  printf '\n---\n\n# Team memory (snapshot at build time)\n\n'
+  index_lines global
+  local role_mem
+  role_mem=$(index_lines "$role")
+  if [ -n "$role_mem" ]; then
+    printf '\n## Role memory (%s only)\n\n%s\n' "$role" "$role_mem"
+  fi
+  printf '\nFull entries: %s/memories/. Rebuild after any memory change.\n' "$ROOT"
+}
+
 adaptation() {
   cat <<'EOF'
 
@@ -80,9 +114,7 @@ gen_agent() {
     for f in "${STACK[@]}"; do printf '\n'; cat "$f"; done
     printf '\n---\n\n'
     body "roles/${role}.md"
-    printf '\n---\n\n# Team memory (snapshot at build time)\n\n'
-    sed '/^<!--/,/-->/d' memories/_index.md
-    printf '\nFull entries: %s/memories/. Rebuild after any memory change.\n' "$ROOT"
+    memory_section "$role"
     adaptation
   } > "$out"
   printf '  %-28s %-7s %5s lines\n' "$name" "$model" "$(wc -l < "$out" | tr -d ' ')"
@@ -161,6 +193,7 @@ EOF
   printf '\n---\n\n'
   body roles/manager.md
   printf '\n---\n\n# Team memory (snapshot at build time)\n\n'
+  printf 'As Manager and sole writer you see the full index. Entries scoped to a role\nare baked only into that role'"'"'s agent at build time; everyone gets the rest.\n\n'
   sed '/^<!--/,/-->/d' memories/_index.md
 } > plugin/skills/agent-team/SKILL.md
 printf '  %-28s %5s lines\n' agent-team "$(wc -l < plugin/skills/agent-team/SKILL.md | tr -d ' ')"

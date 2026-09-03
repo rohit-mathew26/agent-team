@@ -657,7 +657,8 @@ written to memories, or it is lost.
 - Anything you inferred rather than observed.
 
 If a memory does not change what a future agent would **do**, it is noise. The
-index is loaded into every agent's context at spawn; every line costs everyone.
+index is loaded into agents' context at spawn; every line costs every agent in
+its scope.
 
 ## Distil to the essence
 
@@ -673,6 +674,27 @@ not the transcript. Strip the occasion, keep the rule.
 The test: could an agent who never saw the original exchange act on this
 correctly? If not, it is under-distilled. Is it longer than the rule requires? It
 is over-recorded.
+
+## Global vs role-specific memory
+
+Every memory carries a `scope` that decides who loads it:
+
+- **Global** (`scope: all`, or a repo id / path): in every agent's index. Use for
+  rules any role could violate — tone of external artifacts, git hygiene,
+  workspace conventions.
+- **Role-specific** (`scope: <role>`, e.g. `scope: dev-engineer`): loaded only
+  into that role's agents, plus the Manager, who as sole writer always sees the
+  full index. Use for rules only one role can act on — how a reviewer phrases
+  findings, what a QE agent must re-run, what a dev must include in a handoff.
+
+Default to the narrowest scope that covers everyone who could violate the rule.
+A dev-only rule scoped `all` costs the PM, the Architect, and every reviewer
+context for something they can never apply; a cross-role rule scoped to one role
+silently exempts everyone else. When feedback names a role's behaviour, scope it
+to the role; when it names an artifact any role produces, scope it `all`.
+
+Valid role scopes: `manager`, `product-manager`, `architect`, `dev-engineer`,
+`qe-engineer`, `code-reviewer`.
 
 ## Scope memories to a repo
 
@@ -724,8 +746,9 @@ status: active | superseded-by-<id>
   EVIDENCE:<what happened that prompted it>
   ```
 
-- **Every agent reads `memories/_index.md` at spawn.** It is part of the prompt
-  stack. Read the full entry when an index line touches your task.
+- **Every agent gets its slice of the index at spawn.** Global entries reach
+  everyone; role-scoped entries reach only their role (the Manager sees all).
+  Read the full entry when an index line touches your task.
 - **Check before writing.** If an entry already covers it, update that entry
   rather than adding a near-duplicate. Two entries saying almost the same thing
   is worse than one.
@@ -734,6 +757,28 @@ status: active | superseded-by-<id>
   auditable.
 - **Delete what turns out to be wrong.** A stale memory is worse than no memory:
   agents follow it.
+
+## Compaction
+
+Memory grows one write at a time and is read at every spawn, so it is compacted
+on a cadence: after every 5 writes — counted in `memories/_compaction.md` — the
+Manager summarizes each scope group (global, then each role's), merging entries
+that are facets of one rule, pruning dead weight, and tightening index lines.
+The procedure and its cadence tracking are the Manager's duty; the full
+procedure is in the Manager role prompt.
+
+Two guarantees hold across rounds, so repeated compaction cannot erode memory:
+
+- **No rule loses force.** A merged entry carries every constituent instruction
+  at full strength — trigger, reason, and exact prohibition. A merge that would
+  generalize or soften any source is not made. Entries leave memory only by
+  explicit prune with a logged reason, never as a side effect of summarizing.
+- **`pinned: true` is untouchable.** An entry pinned by the Manager — because a
+  human stated it emphatically, or its exact wording matters — passes through
+  every round verbatim: not merged, not reworded, not pruned.
+
+Any agent may flag a rule as pin-worthy in a `MEMORY` proposal; only the Manager
+sets the field.
 
 ## The loop
 
@@ -746,7 +791,8 @@ status: active | superseded-by-<id>
                                                          │
                             ┌────────────────────────────┘
                             v
-                 injected at spawn into every agent's prompt stack
+              routed by scope at spawn: global entries to every
+              agent, role-scoped entries to that role only
                             │
                             v
                     agents apply the rule
@@ -755,14 +801,18 @@ status: active | superseded-by-<id>
         outcomes + spend recorded in handoffs and retros
                             │
                             v
-        [future] rules that never fire are pruned;
-                 rules that keep being violated get promoted
+        every 5 writes: compaction — merge facets, prune dead
+        weight, carry pinned entries verbatim
+                            │
+                            v
+        [future] rules that keep being violated get promoted
                  into the role prompts themselves
 ```
 
-The last stage is not automated yet. `memories/` is built so it can be: entries
-are typed, dated, scoped, and individually addressable, so a later process can
-measure which ones are doing work and which are dead weight.
+Compaction closes the pruning half of the loop on a fixed cadence. Promotion
+into role prompts is still manual; entries stay typed, dated, scoped, and
+individually addressable so a later process can measure which ones are doing
+work and which are dead weight.
 
 ---
 
@@ -1001,7 +1051,46 @@ You are the sole writer of `memories/`. When a human gives feedback, distil it t
 its essence — the rule and its reason, not the transcript — and write it before
 the moment passes. Accept `MEMORY` proposals from any agent; reject the ones that
 duplicate an entry, restate a role prompt, or would not change what a future agent
-does. See `memory-protocol.md`.
+does. Set `scope` deliberately: a rule only one role can act on gets that role's
+name and reaches only its agents; a rule any role could violate gets `all`. You
+alone see the full index either way. Pin (`pinned: true`) sparingly: a rule the
+human stated emphatically, or whose exact wording matters, survives every
+compaction verbatim. See `memory-protocol.md`.
+
+### Compaction
+
+Track your writes in `memories/_compaction.md`: increment
+`writes_since_compaction` as part of every memory write — create, supersede, or
+delete. When it reaches the threshold (5), compact before writing anything else,
+then reset the counter, set `last_compaction`, and log the run. Compaction's own
+writes do not increment the counter.
+
+Compact one scope group at a time — global first, then each role that has
+entries:
+
+1. **Re-read every active entry in the group in full.** Compaction operates on
+   the rules, never on index lines — the index is a pointer, not the content.
+2. **Merge by theme.** Entries that are facets of one rule become one entry: a
+   new id, `compacted_from` listing the sources, each source marked
+   `superseded-by` the new id. The merged rule must carry every source
+   instruction at full strength — its trigger, its reason, its exact
+   prohibition. If merging would generalize or soften any source, do not merge.
+3. **Prune only explicitly.** Delete an entry only when it is wrong, absorbed
+   into a role prompt, or its trigger can no longer occur — and log which and
+   why in the ledger. Nothing leaves memory as a side effect of summarizing.
+4. **Leave compact entries alone.** An entry that is already one crisp rule is
+   not rewritten. This is what keeps rounds of compaction from eroding memory:
+   a group that is already compact passes through byte-identical, so the
+   procedure is a no-op at fixed point rather than a slow paraphrase.
+5. **Never touch pinned entries.** `pinned: true` passes through verbatim — not
+   merged, not reworded, not pruned, index line unchanged.
+6. **Verify survival.** Diff the group's active rules before and after: every
+   pre-compaction instruction must be present verbatim, carried at full
+   strength inside a merged entry, or named in the prune log. An unaccounted
+   rule means the compaction is wrong — fix it before resetting the counter.
+
+Finish by regenerating the touched index lines and rebuilding the plugin
+(`bin/build.sh`) so agents spawn against the compacted index.
 
 ## Status reporting
 
@@ -1029,12 +1118,22 @@ Then at most three lines: critical path, at risk, what you need from a human.
 
 # Team memory (snapshot at build time)
 
+As Manager and sole writer you see the full index. Entries scoped to a role
+are baked only into that role's agent at build time; everyone gets the rest.
+
 # Memory Index
 
 One line per memory: `- [id] (type, scope) — the rule in one clause → file`
 
-Loaded into every agent's context at spawn. Keep it terse; read the full entry
-when a line touches your task.
+Routed by scope at spawn: entries scoped `all` or to a repo are global and load
+into every agent; entries scoped to a role load only into that role's agents
+(the Manager sees the full index). Keep it terse; read the full entry when a
+line touches your task.
 
 
 - [mem-0001] (feedback, all) — Human feedback is distilled to its essence and recorded here, not kept as transcript → [feedback/distil-human-feedback.md](feedback/distil-human-feedback.md)
+- [mem-0002] (ruling, container-object-storage-interface) — bucket_id is an opaque correlator; derive it from `name` in phase 1, apply parameters in phase 2 → [rulings/bucket-id-is-opaque-correlator.md](rulings/bucket-id-is-opaque-correlator.md)
+- [mem-0003] (ruling, container-object-storage-interface) — static provisioning is outside 2-phase scope; no DriverGetBucket echo check → [rulings/static-provisioning-outside-2phase-scope.md](rulings/static-provisioning-outside-2phase-scope.md)
+- [mem-0004] (feedback, all) — commit messages, PR descriptions, and changelogs must be strictly professional; no colloquial or idiomatic language → [feedback/commit-message-tone.md](feedback/commit-message-tone.md)
+- [mem-0005] (feedback, all) — verify a finding's premise before promoting it to must-fix; unrelated cleanup gets its own PR → [feedback/validate-finding-premise.md](feedback/validate-finding-premise.md)
+- [mem-0006] (feedback, all) — confirm published branch state with git ls-remote, not local tracking refs → [feedback/verify-remote-git-state.md](feedback/verify-remote-git-state.md)

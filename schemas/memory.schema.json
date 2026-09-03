@@ -30,7 +30,7 @@
     },
     "scope": {
       "type": "string",
-      "description": "'all', a role name, or a workspace repo id / path the rule applies to. Narrow scope keeps the index cheap for agents it does not concern \u2014 a repo-specific rule scoped 'all' costs every other agent context and invites misapplication."
+      "description": "'all', a role name (manager | product-manager | architect | dev-engineer | qe-engineer | code-reviewer), or a workspace repo id / path. Routes the entry at build time: 'all' and repo scopes are global (every agent's index); a role scope reaches only that role's agents plus the Manager. Narrow scope keeps the index cheap for agents it does not concern \u2014 a rule scoped wider than who can violate it costs everyone else context and invites misapplication."
     },
     "source": {
       "type": "string",
@@ -64,6 +64,18 @@
         "type": "string",
         "pattern": "^mem-[0-9]{4}$"
       }
+    },
+    "pinned": {
+      "type": "boolean",
+      "description": "Survives compaction untouched: never merged, reworded, or pruned; the entry and its index line pass through every round verbatim. For rules whose exact wording matters or that must never lose prominence. Set by the Manager, sparingly — a pin is a permanent context cost."
+    },
+    "compacted_from": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^mem-[0-9]{4}$"
+      },
+      "description": "Ids merged into this entry during compaction; each source is marked superseded-by this id. The merged rule must carry every source instruction at full strength."
     },
     "origin_task": {
       "type": "string",
