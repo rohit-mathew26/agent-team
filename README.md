@@ -127,7 +127,7 @@ is live in the next session. `bin/uninstall-local.sh` removes the links.
 **As a plugin, anywhere:**
 
 ```
-/plugin marketplace add rohit-mathew/agent-team
+/plugin marketplace add rohit-mathew26/agent-team
 /plugin install agent-team
 ```
 
