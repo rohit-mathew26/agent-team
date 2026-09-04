@@ -114,6 +114,11 @@ status: active | superseded-by-<id>
   EVIDENCE:<what happened that prompted it>
   ```
 
+  Proposals do not sit: the Manager accepts or rejects each one no later than
+  its end-of-session retro, and every session ends with that retro — a pass
+  over the session's feedback, failures, and rulings so `memories/` carries
+  everything that would improve the next session before the Manager reports up.
+
 - **Every agent gets its slice of the index at spawn.** Global entries reach
   everyone; role-scoped entries reach only their role (the Manager sees all).
   Read the full entry when an index line touches your task.
@@ -134,6 +139,12 @@ Manager summarizes each scope group (global, then each role's), merging entries
 that are facets of one rule, pruning dead weight, and tightening index lines.
 The procedure and its cadence tracking are the Manager's duty; the full
 procedure is in the Manager role prompt.
+
+Compaction is also the one moment the role prompts themselves may change: a
+rule that has proven itself — applied repeatedly across sessions, or violated
+despite being in the index — is promoted into its role's prompt (a shared
+fragment for global rules) and pruned from memory as absorbed. Promotion is a
+move, never a copy, and it happens only during a compaction run.
 
 Two guarantees hold across rounds, so repeated compaction cannot erode memory:
 
@@ -173,11 +184,12 @@ sets the field.
         weight, carry pinned entries verbatim
                             │
                             v
-        [future] rules that keep being violated get promoted
-                 into the role prompts themselves
+        rules that keep proving themselves get promoted into
+        the role prompts themselves (compaction only)
 ```
 
-Compaction closes the pruning half of the loop on a fixed cadence. Promotion
-into role prompts is still manual; entries stay typed, dated, scoped, and
-individually addressable so a later process can measure which ones are doing
-work and which are dead weight.
+Compaction closes both halves of the loop on a fixed cadence: pruning removes
+what stopped doing work, promotion moves what keeps doing work into the design
+itself. Entries stay typed, dated, scoped, and individually addressable so
+promotion can be judged on evidence — which rules fired, which were violated —
+rather than on impression.

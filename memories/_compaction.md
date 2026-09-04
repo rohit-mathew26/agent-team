@@ -17,6 +17,6 @@ writes do not increment the counter.
 ## Runs
 
 Newest last. One line per run:
-`- YYYY-MM-DD — <scope>: <n> entries -> <m> (merged: ids; pruned: ids + reason); pins verified`
+`- YYYY-MM-DD — <scope>: <n> entries -> <m> (merged: ids; pruned: ids + reason; promoted: ids -> file); pins verified`
 
 <!-- Entries below. -->

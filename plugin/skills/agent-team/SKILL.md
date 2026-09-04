@@ -556,6 +556,10 @@ Only the Manager escalates to the human operator. Triggers:
 - **Anything safety-shaped:** data loss, credential exposure, destructive
   migration, an outward-facing action. Stop and ask, regardless of how clear the
   instruction looked.
+- **A large strategic decision** whose consequences reach beyond the codebase:
+  open-sourcing or publishing a repo, license choice, vendor or paid-service
+  commitments, platform adoption, anything legal or public-facing. The
+  Architect frames the options; the human decides.
 - Requirements and feasibility irreconcilable within budget.
 - The same decision generating conflict twice.
 
@@ -746,6 +750,11 @@ status: active | superseded-by-<id>
   EVIDENCE:<what happened that prompted it>
   ```
 
+  Proposals do not sit: the Manager accepts or rejects each one no later than
+  its end-of-session retro, and every session ends with that retro — a pass
+  over the session's feedback, failures, and rulings so `memories/` carries
+  everything that would improve the next session before the Manager reports up.
+
 - **Every agent gets its slice of the index at spawn.** Global entries reach
   everyone; role-scoped entries reach only their role (the Manager sees all).
   Read the full entry when an index line touches your task.
@@ -766,6 +775,12 @@ Manager summarizes each scope group (global, then each role's), merging entries
 that are facets of one rule, pruning dead weight, and tightening index lines.
 The procedure and its cadence tracking are the Manager's duty; the full
 procedure is in the Manager role prompt.
+
+Compaction is also the one moment the role prompts themselves may change: a
+rule that has proven itself — applied repeatedly across sessions, or violated
+despite being in the index — is promoted into its role's prompt (a shared
+fragment for global rules) and pruned from memory as absorbed. Promotion is a
+move, never a copy, and it happens only during a compaction run.
 
 Two guarantees hold across rounds, so repeated compaction cannot erode memory:
 
@@ -805,14 +820,15 @@ sets the field.
         weight, carry pinned entries verbatim
                             │
                             v
-        [future] rules that keep being violated get promoted
-                 into the role prompts themselves
+        rules that keep proving themselves get promoted into
+        the role prompts themselves (compaction only)
 ```
 
-Compaction closes the pruning half of the loop on a fixed cadence. Promotion
-into role prompts is still manual; entries stay typed, dated, scoped, and
-individually addressable so a later process can measure which ones are doing
-work and which are dead weight.
+Compaction closes both halves of the loop on a fixed cadence: pruning removes
+what stopped doing work, promotion moves what keeps doing work into the design
+itself. Entries stay typed, dated, scoped, and individually addressable so
+promotion can be judged on evidence — which rules fired, which were violated —
+rather than on impression.
 
 ---
 
@@ -996,7 +1012,9 @@ See `workflows/cross-repo-change.md` for the full sequence.
      SCOPE_CHANGE -> to the PM to accept or defer; never absorb silently
      REPORT       -> evaluate against the Definition of Done
 7. Anything worth remembering -> write it to memories/ before the agent retires.
-8. All criteria met: DONE, retire the agents, report up.
+8. All criteria met: DONE, retire the agents.
+9. Run the session retro (below): memories/ reflects everything this session
+   taught before you report up.
 ```
 
 ## Monitoring for stuck
@@ -1057,6 +1075,37 @@ alone see the full index either way. Pin (`pinned: true`) sparingly: a rule the
 human stated emphatically, or whose exact wording matters, survives every
 compaction verbatim. See `memory-protocol.md`.
 
+### Session retro
+
+Every session ends with a memory pass. After the goal reaches `DONE`, is
+escalated, or the session otherwise winds down — and **before you report up** —
+walk the session and update `memories/`. This is your duty, not best-effort: it
+is the step that converts this session's mistakes into the next session's
+quality, and a session is not finished until it has run.
+
+Write what qualifies, each aimed at changing what a future agent does:
+
+- **Human feedback** given at any point and not yet distilled — the rule and its
+  reason — to `memories/feedback/`.
+- **Failures** — every stuck/respawn, defect that reached review or QE, budget
+  overrun, or split that turned out wrong — distilled to the dead end or scoping
+  lesson that must not repeat, to `memories/failures/`.
+- **Rulings** from this session that bind work beyond it, to `memories/rulings/`.
+- **Pending `MEMORY` proposals** from retired agents — accept or reject each one
+  explicitly; none may be left undecided at session end.
+
+The bar for each entry is the protocol's: it must prevent a future mistake or
+improve future output, and it must not duplicate an entry or a role prompt. A
+session where nothing qualifies writes nothing — but a session with an unwritten
+lesson has not ended. These writes count toward the compaction threshold as
+usual.
+
+The retro is the floor, not the last write. Reporting up usually draws fresh
+feedback — a correction, a redirect, a "next time do X" — and that arrives
+*after* the retro by construction. Distil it the moment it lands, exactly as
+you would mid-session, and only then is the session closed. A session with
+post-report feedback left unwritten has not ended either.
+
 ### Compaction
 
 Track your writes in `memories/_compaction.md`: increment
@@ -1075,22 +1124,33 @@ entries:
    `superseded-by` the new id. The merged rule must carry every source
    instruction at full strength — its trigger, its reason, its exact
    prohibition. If merging would generalize or soften any source, do not merge.
-3. **Prune only explicitly.** Delete an entry only when it is wrong, absorbed
+3. **Promote proven rules into the role prompts.** Compaction is the one moment
+   the roles themselves may be edited. An entry that has earned it — applied
+   repeatedly across sessions, or violated even though it sat in the index —
+   moves into its role's prompt (`roles/<role>.md`; a `shared/` fragment for
+   `scope: all`), worded the way that prompt words its other rules, then is
+   pruned with reason `absorbed into role prompt` and the promotion logged in
+   the ledger. Promotion is a move, never a copy: a rule living in both places
+   drifts. Outside compaction, role prompts are not edited on the back of
+   memory.
+4. **Prune only explicitly.** Delete an entry only when it is wrong, absorbed
    into a role prompt, or its trigger can no longer occur — and log which and
    why in the ledger. Nothing leaves memory as a side effect of summarizing.
-4. **Leave compact entries alone.** An entry that is already one crisp rule is
+5. **Leave compact entries alone.** An entry that is already one crisp rule is
    not rewritten. This is what keeps rounds of compaction from eroding memory:
    a group that is already compact passes through byte-identical, so the
    procedure is a no-op at fixed point rather than a slow paraphrase.
-5. **Never touch pinned entries.** `pinned: true` passes through verbatim — not
+6. **Never touch pinned entries.** `pinned: true` passes through verbatim — not
    merged, not reworded, not pruned, index line unchanged.
-6. **Verify survival.** Diff the group's active rules before and after: every
+7. **Verify survival.** Diff the group's active rules before and after: every
    pre-compaction instruction must be present verbatim, carried at full
-   strength inside a merged entry, or named in the prune log. An unaccounted
-   rule means the compaction is wrong — fix it before resetting the counter.
+   strength inside a merged entry, promoted into a role prompt, or named in
+   the prune log. An unaccounted rule means the compaction is wrong — fix it
+   before resetting the counter.
 
 Finish by regenerating the touched index lines and rebuilding the plugin
-(`bin/build.sh`) so agents spawn against the compacted index.
+(`bin/build.sh`) so agents spawn against the compacted index and any promoted
+role prompts.
 
 ## Status reporting
 
@@ -1113,6 +1173,9 @@ Then at most three lines: critical path, at risk, what you need from a human.
 - Let an agent run past its budget without a decision from you.
 - Coach a stuck agent instead of replacing it.
 - Hold an idle agent open against future work.
+- Report up at session end before the memory retro has run.
+- Close a session with post-report human feedback left unwritten.
+- Edit a role prompt outside a compaction run.
 
 ---
 

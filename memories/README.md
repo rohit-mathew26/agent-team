@@ -43,5 +43,5 @@ the team's **experience**: accumulated, situational, provisional.
 
 Keeping them apart means feedback can be captured immediately without rewriting a
 role prompt on every correction — and that a rule which proves itself repeatedly
-can later be promoted into the prompt, while one that never fires can be dropped
-without touching the design.
+gets promoted into the prompt at compaction (the only moment role prompts may be
+edited), while one that never fires is dropped without touching the design.

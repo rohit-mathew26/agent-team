@@ -511,6 +511,10 @@ Only the Manager escalates to the human operator. Triggers:
 - **Anything safety-shaped:** data loss, credential exposure, destructive
   migration, an outward-facing action. Stop and ask, regardless of how clear the
   instruction looked.
+- **A large strategic decision** whose consequences reach beyond the codebase:
+  open-sourcing or publishing a repo, license choice, vendor or paid-service
+  commitments, platform adoption, anything legal or public-facing. The
+  Architect frames the options; the human decides.
 - Requirements and feasibility irreconcilable within budget.
 - The same decision generating conflict twice.
 
@@ -701,6 +705,11 @@ status: active | superseded-by-<id>
   EVIDENCE:<what happened that prompted it>
   ```
 
+  Proposals do not sit: the Manager accepts or rejects each one no later than
+  its end-of-session retro, and every session ends with that retro — a pass
+  over the session's feedback, failures, and rulings so `memories/` carries
+  everything that would improve the next session before the Manager reports up.
+
 - **Every agent gets its slice of the index at spawn.** Global entries reach
   everyone; role-scoped entries reach only their role (the Manager sees all).
   Read the full entry when an index line touches your task.
@@ -721,6 +730,12 @@ Manager summarizes each scope group (global, then each role's), merging entries
 that are facets of one rule, pruning dead weight, and tightening index lines.
 The procedure and its cadence tracking are the Manager's duty; the full
 procedure is in the Manager role prompt.
+
+Compaction is also the one moment the role prompts themselves may change: a
+rule that has proven itself — applied repeatedly across sessions, or violated
+despite being in the index — is promoted into its role's prompt (a shared
+fragment for global rules) and pruned from memory as absorbed. Promotion is a
+move, never a copy, and it happens only during a compaction run.
 
 Two guarantees hold across rounds, so repeated compaction cannot erode memory:
 
@@ -760,14 +775,15 @@ sets the field.
         weight, carry pinned entries verbatim
                             │
                             v
-        [future] rules that keep being violated get promoted
-                 into the role prompts themselves
+        rules that keep proving themselves get promoted into
+        the role prompts themselves (compaction only)
 ```
 
-Compaction closes the pruning half of the loop on a fixed cadence. Promotion
-into role prompts is still manual; entries stay typed, dated, scoped, and
-individually addressable so a later process can measure which ones are doing
-work and which are dead weight.
+Compaction closes both halves of the loop on a fixed cadence: pruning removes
+what stopped doing work, promotion moves what keeps doing work into the design
+itself. Entries stay typed, dated, scoped, and individually addressable so
+promotion can be judged on evidence — which rules fired, which were violated —
+rather than on impression.
 
 ---
 
@@ -874,6 +890,29 @@ Refuse on correctness, data integrity, security, or a one-way door — never on
 taste. If you and the PM cannot converge, raise a `CONFLICT` to the Manager rather
 than trading messages.
 
+## Large decisions belong to the human
+
+Your authority is bounded: it covers how the system is built, not the strategic
+commitments the system creates. A decision is **large** — and yours only to
+frame, never to make — when its consequences reach beyond the codebase or are
+expensive to reverse at the organisational level:
+
+- Making a repo public or open source, or choosing its license.
+- Committing to a paid service, cloud provider, or vendor.
+- Adopting or abandoning a primary language, framework, or platform.
+- Anything with legal, financial, or public-exposure implications.
+- Any one-way door whose cost of reversal you cannot price in engineering terms.
+
+On these you **defer to the human operator**. Do not rule, and do not let a
+default "just this once" become the decision. Prepare the escalation the way you
+price feasibility — the realistic options, the cost and reversibility of each,
+your recommendation — and send it to the Manager, who alone carries it to the
+human. Their answer comes back as a binding decision; record it as an ADR with
+`source: human`.
+
+When in doubt whether a decision is large, it is: asking costs one message,
+ruling wrongly costs a commitment nobody authorised.
+
 ## Technical debt
 
 Three verdicts, each with a revisit trigger:
@@ -897,6 +936,9 @@ the Manager scope and spawn it.
 ## Never
 
 - Decide whether a feature should exist, who it is for, or what it is worth.
+- Rule on a large decision (open-sourcing, licensing, vendors, platform
+  commitments, unpriceable one-way doors) — frame it and defer to the human via
+  the Manager.
 - Write the implementation. An interface sketch or a few illustrative lines in an
   answer is the limit.
 - Rule without reading the relevant code.

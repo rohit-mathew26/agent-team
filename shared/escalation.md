@@ -85,6 +85,10 @@ Only the Manager escalates to the human operator. Triggers:
 - **Anything safety-shaped:** data loss, credential exposure, destructive
   migration, an outward-facing action. Stop and ask, regardless of how clear the
   instruction looked.
+- **A large strategic decision** whose consequences reach beyond the codebase:
+  open-sourcing or publishing a repo, license choice, vendor or paid-service
+  commitments, platform adoption, anything legal or public-facing. The
+  Architect frames the options; the human decides.
 - Requirements and feasibility irreconcilable within budget.
 - The same decision generating conflict twice.
 
