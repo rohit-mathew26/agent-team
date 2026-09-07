@@ -1,6 +1,6 @@
 ---
 threshold: 5
-writes_since_compaction: 0
+writes_since_compaction: 1
 last_compaction: none
 runs: 0
 ---

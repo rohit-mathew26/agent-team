@@ -16,3 +16,4 @@ line touches your task.
 - [mem-0004] (feedback, all) — commit messages, PR descriptions, and changelogs must be strictly professional; no colloquial or idiomatic language → [feedback/commit-message-tone.md](feedback/commit-message-tone.md)
 - [mem-0005] (feedback, all) — verify a finding's premise before promoting it to must-fix; unrelated cleanup gets its own PR → [feedback/validate-finding-premise.md](feedback/validate-finding-premise.md)
 - [mem-0006] (feedback, all) — confirm published branch state with git ls-remote, not local tracking refs → [feedback/verify-remote-git-state.md](feedback/verify-remote-git-state.md)
+- [mem-0007] (failure, container-object-storage-interface) — seed ProtectionFinalizer on Bucket fixtures to test deleting-state branches; verify reachability empirically → [failures/seed-bucket-finalizer-in-deletion-tests.md](failures/seed-bucket-finalizer-in-deletion-tests.md)
